@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { requireNoAuth } from "@/lib/auth-utils";
-import { RegisterForm } from "@/fetaures/auth/components/RegisterForm";
+import { SignUpView } from "@/modules/auth/ui/views/sign-up-view";
 
 export const Route = createFileRoute("/signup")({
   beforeLoad: requireNoAuth,
@@ -9,12 +9,9 @@ export const Route = createFileRoute("/signup")({
 
 function RouteComponent() {
   return (
-    <div className="bg-muted flex min-h-svh flex-col items-center justify-center">
-      <div className="w-full max-w-sm flex flex-col gap-6">
-        <Link to="/" className="flex items-center self-center font-medium">
-          <img src="/logos/logo.svg" alt="Logo" className="w-24 h-24" />
-        </Link>
-        <RegisterForm />
+    <div className="bg-muted flex min-h-svh flex-col items-center justify-center p-6 md:p-10">
+      <div className="w-full max-w-sm md:max-w-3xl">
+        <SignUpView />
       </div>
     </div>
   );
