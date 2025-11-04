@@ -17,6 +17,7 @@ import { OctagonAlertIcon } from "lucide-react";
 import { Link, useRouter } from "@tanstack/react-router";
 import { authClient } from "@/lib/auth-client";
 import { useState } from "react";
+import { FaGithub, FaGoogle } from "react-icons/fa";
 
 const registerSchema = z
   .object({
@@ -59,13 +60,34 @@ export const SignUpView = () => {
       {
         onSuccess: () => {
           setPending(false);
-          router.navigate({ to: "/" });
+          router.navigate({ to: "/", replace: true });
         },
         onError: ({ error }) => {
           setPending(false);
           setError(error.message);
         },
+      }
+    );
+  };
+
+  const onSocial = async (provider: "github" | "google") => {
+    setError(null);
+    setPending(true);
+
+    authClient.signIn.social(
+      {
+        provider: provider,
+        callbackURL: "http://localhost:5173/",
       },
+      {
+        onSuccess: () => {
+          setPending(false);
+        },
+        onError: ({ error }) => {
+          setPending(false);
+          setError(error.message);
+        },
+      }
     );
   };
 
@@ -173,10 +195,22 @@ export const SignUpView = () => {
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <Button variant="outline" type="button" className="w-full">
+                  <Button
+                    variant="outline"
+                    type="button"
+                    className="w-full"
+                    onClick={() => onSocial("google")}
+                  >
+                    <FaGoogle className="h-4 w-4" />
                     Google
                   </Button>
-                  <Button variant="outline" type="button" className="w-full">
+                  <Button
+                    variant="outline"
+                    type="button"
+                    className="w-full"
+                    onClick={() => onSocial("github")}
+                  >
+                    <FaGithub className="h-4 w-4" />
                     Github
                   </Button>
                 </div>

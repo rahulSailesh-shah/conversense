@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { requireNoAuth } from "@/lib/auth-utils";
-// import LoginForm from "@/modules/auth/components/LoginForm";
 import { SignInView } from "@/modules/auth/ui/views/sign-in-view";
+import { requireNoAuth } from "@/lib/auth-utils";
 
 export const Route = createFileRoute("/login")({
   beforeLoad: requireNoAuth,

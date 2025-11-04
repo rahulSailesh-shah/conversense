@@ -14,6 +14,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { OctagonAlertIcon } from "lucide-react";
+import { FaGithub, FaGoogle } from "react-icons/fa";
 import { Link, useRouter } from "@tanstack/react-router";
 import { authClient } from "@/lib/auth-client";
 import { useState } from "react";
@@ -26,9 +27,9 @@ const loginSchema = z.object({
 type LoginSchema = z.infer<typeof loginSchema>;
 
 export const SignInView = () => {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const router = useRouter();
   const form = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -49,13 +50,34 @@ export const SignInView = () => {
       {
         onSuccess: () => {
           setPending(false);
-          router.navigate({ to: "/" });
+          router.navigate({ to: "/", replace: true });
         },
         onError: ({ error }) => {
           setPending(false);
           setError(error.message);
         },
+      }
+    );
+  };
+
+  const onSocial = async (provider: "github" | "google") => {
+    setError(null);
+    setPending(true);
+
+    authClient.signIn.social(
+      {
+        provider: provider,
+        callbackURL: "http://localhost:5173/",
       },
+      {
+        onSuccess: () => {
+          setPending(false);
+        },
+        onError: ({ error }) => {
+          setPending(false);
+          setError(error.message);
+        },
+      }
     );
   };
 
@@ -125,10 +147,22 @@ export const SignInView = () => {
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <Button variant="outline" type="button" className="w-full">
+                  <Button
+                    variant="outline"
+                    type="button"
+                    className="w-full"
+                    onClick={() => onSocial("google")}
+                  >
+                    <FaGoogle className="h-4 w-4" />
                     Google
                   </Button>
-                  <Button variant="outline" type="button" className="w-full">
+                  <Button
+                    variant="outline"
+                    type="button"
+                    className="w-full"
+                    onClick={() => onSocial("github")}
+                  >
+                    <FaGithub className="h-4 w-4" />
                     Github
                   </Button>
                 </div>
