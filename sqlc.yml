@@ -8,6 +8,7 @@ sql:
         package: "repo"
         out: "internal/db/repo"
         emit_json_tags: true
+        emit_db_tags: true
         json_tags_case_style: "camel"
         emit_prepared_queries: false
         emit_interface: false

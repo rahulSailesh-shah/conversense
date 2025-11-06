@@ -1,11 +1,22 @@
 import { GeneratedAvatar } from "@/components/generated-avatar";
 import { Avatar } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { authClient } from "@/lib/auth-client";
 import { getSession } from "@/lib/auth-utils";
 import { queryClient } from "@/lib/query-client";
@@ -24,6 +35,7 @@ export const DashboardUserButton = () => {
   > | null>(null);
 
   const router = useRouter();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -51,6 +63,49 @@ export const DashboardUserButton = () => {
       console.error("Error signing out:", err);
     }
   };
+
+  if (isMobile) {
+    return (
+      <Drawer>
+        <DrawerTrigger className="rounded-lg border border-border/10 p-3 w-full flex items-center justify-between bg-white/5 hover:bg-white/10 overflow-hidden">
+          {session.user.image ? (
+            <Avatar className="mr-3">
+              <AvatarImage
+                src={session.user.image}
+                alt={session.user.name}
+                className="size-9"
+              />
+            </Avatar>
+          ) : (
+            <GeneratedAvatar
+              seed={session.user.name}
+              variant="initials"
+              className="size-9 mr-3"
+            />
+          )}
+          <div className="flex flex-col gap-0.5 text-left overflow-hidden flex-1 min-w-0">
+            <p className="text-sm truncate w-full">{session.user.name}</p>
+            <p className="text-xs truncate w-full">{session.user.email}</p>
+          </div>
+          <ChevronDownIcon className="size-4 shrink-0" />
+        </DrawerTrigger>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>{session.user.name}</DrawerTitle>
+            <DrawerDescription>{session.user.email}</DrawerDescription>
+          </DrawerHeader>
+          <DrawerFooter>
+            <Button variant="outline" onClick={onLogout}>
+              Logout <LogOutIcon className="size-4" />
+            </Button>
+            <Button variant="outline" onClick={onLogout}>
+              Billing <CreditCardIcon className="size-4" />
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
 
   return (
     <DropdownMenu>

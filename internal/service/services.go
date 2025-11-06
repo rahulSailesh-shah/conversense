@@ -2,11 +2,15 @@ package service
 
 import (
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rahulSailesh-shah/converSense/internal/db/repo"
 )
 
+type Service struct {
+	Agent AgentService
+}
 
-type Service struct {}
-
-func NewService(db *pgxpool.Pool) *Service {
-	return &Service{}
+func NewService(db *pgxpool.Pool, queries *repo.Queries) *Service {
+	return &Service{
+		Agent: NewAgentService(db, queries),
+	}
 }

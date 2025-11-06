@@ -52,7 +52,7 @@ func LoadConfig() (*AppConfig, error) {
 			Name:     os.Getenv("DB_DATABASE"),
 		},
 		Server: ServerConfig{
-			Port:                8080,
+			Port:                9000,
 			GracefulShutdownSec: 5,
 		},
 		Auth: AuthConfig{

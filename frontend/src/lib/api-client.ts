@@ -87,6 +87,9 @@ class ApiClient {
     }
 
     const response = await fetch(fullUrl, {
+      credentials: "include",
+      method: "GET",
+      mode: "cors",
       headers: {
         ...this.headers,
         Authorization: `Bearer ${token}`,
@@ -206,4 +209,4 @@ class ApiClient {
   }
 }
 
-export const apiClient = new ApiClient("http://localhost:8080");
+export const apiClient = new ApiClient("http://localhost:9000");

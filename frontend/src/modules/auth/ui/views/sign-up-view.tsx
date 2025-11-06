@@ -77,7 +77,7 @@ export const SignUpView = () => {
     authClient.signIn.social(
       {
         provider: provider,
-        callbackURL: "http://localhost:5173/",
+        callbackURL: "http://localhost:9001/",
       },
       {
         onSuccess: () => {

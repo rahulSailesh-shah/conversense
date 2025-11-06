@@ -51,5 +51,7 @@ export function QueryBoundary<T>({
     return <>{emptyFallback}</>;
   }
 
+  console.log("QueryBoundary received data:", query.data);
+
   return <>{children(query.data)}</>;
 }

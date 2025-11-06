@@ -38,6 +38,7 @@ func (p *postgresDB) Connect() error {
 	config.ConnConfig.Port = uint16(p.config.Port)
 	config.ConnConfig.User = p.config.User
 	config.ConnConfig.Database = p.config.Name
+	config.ConnConfig.Password = p.config.Password
 	config.MaxConns = 50
 
 	config.MinConns = 10
