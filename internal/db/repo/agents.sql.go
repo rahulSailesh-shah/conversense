@@ -7,7 +7,6 @@ package repo
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/uuid"
 )
@@ -56,6 +55,29 @@ func (q *Queries) DeleteAgentsByUserID(ctx context.Context, userID string) error
 	return err
 }
 
+const getAgent = `-- name: GetAgent :one
+SELECT id, name, user_id, instructions, created_at, updated_at FROM agent WHERE id = $1 AND user_id = $2
+`
+
+type GetAgentParams struct {
+	ID     uuid.UUID `db:"id" json:"id"`
+	UserID string    `db:"user_id" json:"userId"`
+}
+
+func (q *Queries) GetAgent(ctx context.Context, arg GetAgentParams) (Agent, error) {
+	row := q.db.QueryRow(ctx, getAgent, arg.ID, arg.UserID)
+	var i Agent
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.UserID,
+		&i.Instructions,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getAgentByID = `-- name: GetAgentByID :one
 SELECT id, name, user_id, instructions, created_at, updated_at FROM agent WHERE id = $1
 `
@@ -74,38 +96,13 @@ func (q *Queries) GetAgentByID(ctx context.Context, id uuid.UUID) (Agent, error)
 	return i, err
 }
 
-const getAgentByUserID = `-- name: GetAgentByUserID :one
-SELECT id, name, user_id, instructions, created_at, updated_at FROM agent WHERE id = $1 AND user_id = $2
-`
-
-type GetAgentByUserIDParams struct {
-	ID     uuid.UUID `db:"id" json:"id"`
-	UserID string    `db:"user_id" json:"userId"`
-}
-
-func (q *Queries) GetAgentByUserID(ctx context.Context, arg GetAgentByUserIDParams) (Agent, error) {
-	row := q.db.QueryRow(ctx, getAgentByUserID, arg.ID, arg.UserID)
-	var i Agent
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.UserID,
-		&i.Instructions,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const getAgentsByUserID = `-- name: GetAgentsByUserID :many
+const getAgents = `-- name: GetAgents :many
 SELECT id, name, user_id, instructions, created_at, updated_at FROM agent WHERE user_id = $1
 `
 
-func (q *Queries) GetAgentsByUserID(ctx context.Context, userID string) ([]Agent, error) {
-	fmt.Println("Querying agents for user:", userID)
-	rows, err := q.db.Query(ctx, getAgentsByUserID, userID)
+func (q *Queries) GetAgents(ctx context.Context, userID string) ([]Agent, error) {
+	rows, err := q.db.Query(ctx, getAgents, userID)
 	if err != nil {
-		fmt.Println("Query error:", err)
 		return nil, err
 	}
 	defer rows.Close()

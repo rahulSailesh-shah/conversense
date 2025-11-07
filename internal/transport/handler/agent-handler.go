@@ -95,6 +95,34 @@ func (h *AgentHandler) GetAgents(c *gin.Context) {
 	})
 }
 
+func (h *AgentHandler) GetAgent(c *gin.Context) {
+	agentId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Message: "Invalid agent ID",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	agent, err := h.agentService.GetAgent(c.Request.Context(), dto.GetAgentRequest{
+		ID:     agentId,
+		UserID: c.MustGet("userId").(string),
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Message: "Failed to get agent",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.SuccessResponse{
+		Message: "Agent retrieved successfully",
+		Data:    agent,
+	})
+}
+
 func (h *AgentHandler) DeleteAgent(c *gin.Context) {
 	agentId, err := uuid.Parse(c.Param("id"))
 	if err != nil {

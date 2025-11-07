@@ -209,4 +209,5 @@ class ApiClient {
   }
 }
 
-export const apiClient = new ApiClient("http://localhost:9000");
+const serverUrl = import.meta.env.VITE_SERVER_URL as string;
+export const apiClient = new ApiClient(serverUrl);

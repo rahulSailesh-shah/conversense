@@ -38,6 +38,7 @@ func RegisterRoutes(r *gin.Engine, authKeys jwk.Set, app *app.App) {
 		agentRoutes.POST("", agentHandler.CreateAgent)
 		agentRoutes.PUT("/:id", agentHandler.UpdateAgent)
 		agentRoutes.GET("", agentHandler.GetAgents)
+		agentRoutes.GET("/:id", agentHandler.GetAgent)
 		agentRoutes.DELETE("/:id", agentHandler.DeleteAgent)
 	}
 }

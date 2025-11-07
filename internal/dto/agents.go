@@ -8,7 +8,7 @@ import (
 
 type CreateAgentRequest struct {
 	Name         string `json:"name" binding:"required"`
-	UserID       string `json:"userId" binding:"required"`
+	UserID       string `json:"-"`
 	Instructions string `json:"instructions" binding:"required"`
 }
 
@@ -21,6 +21,11 @@ type UpdateAgentRequest struct {
 
 type GetAgentsRequest struct {
 	UserID string `form:"userId"`
+}
+
+type GetAgentRequest struct {
+	ID     uuid.UUID `json:"-"`
+	UserID string    `json:"-"`
 }
 
 type DeleteAgentRequest struct {

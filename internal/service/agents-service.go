@@ -13,6 +13,7 @@ type AgentService interface {
 	CreateAgent(ctx context.Context, request dto.CreateAgentRequest) (*dto.AgentResponse, error)
 	UpdateAgent(ctx context.Context, request dto.UpdateAgentRequest) (*dto.AgentResponse, error)
 	GetAgents(ctx context.Context, request dto.GetAgentsRequest) ([]*dto.AgentResponse, error)
+	GetAgent(ctx context.Context, request dto.GetAgentRequest) (*dto.AgentResponse, error)
 	DeleteAgent(ctx context.Context, request dto.DeleteAgentRequest) error
 }
 
@@ -41,7 +42,7 @@ func (s *agentService) CreateAgent(ctx context.Context, request dto.CreateAgentR
 }
 
 func (s *agentService) UpdateAgent(ctx context.Context, request dto.UpdateAgentRequest) (*dto.AgentResponse, error) {
-	currentAgent, err := s.queries.GetAgentByUserID(ctx, repo.GetAgentByUserIDParams{
+	currentAgent, err := s.queries.GetAgent(ctx, repo.GetAgentParams{
 		ID:     request.ID,
 		UserID: request.UserID,
 	})
@@ -69,7 +70,7 @@ func (s *agentService) UpdateAgent(ctx context.Context, request dto.UpdateAgentR
 }
 
 func (s *agentService) GetAgents(ctx context.Context, request dto.GetAgentsRequest) ([]*dto.AgentResponse, error) {
-	agents, err := s.queries.GetAgentsByUserID(ctx, request.UserID)
+	agents, err := s.queries.GetAgents(ctx, request.UserID)
 	if err != nil {
 		fmt.Println("Error fetching agents:", err)
 		return nil, err
@@ -88,6 +89,17 @@ func (s *agentService) DeleteAgent(ctx context.Context, request dto.DeleteAgentR
 		return err
 	}
 	return nil
+}
+
+func (s *agentService) GetAgent(ctx context.Context, request dto.GetAgentRequest) (*dto.AgentResponse, error) {
+	agent, err := s.queries.GetAgent(ctx, repo.GetAgentParams{
+		ID:     request.ID,
+		UserID: request.UserID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return toAgentResponse(agent), nil
 }
 
 func toAgentResponse(agent repo.Agent) *dto.AgentResponse {

@@ -6,10 +6,10 @@ RETURNING *;
 -- name: GetAgentByID :one
 SELECT * FROM agent WHERE id = $1;
 
--- name: GetAgentsByUserID :many
+-- name: GetAgents :many
 SELECT * FROM agent WHERE user_id = $1;
 
--- name: GetAgentByUserID :one
+-- name: GetAgent :one
 SELECT * FROM agent WHERE id = $1 AND user_id = $2;
 
 -- name: UpdateAgent :one
