@@ -18,6 +18,7 @@ import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedUsersUserIdRouteImport } from './routes/_authenticated/users/userId'
 import { Route as AuthenticatedDashboardMeetingsIndexRouteImport } from './routes/_authenticated/_dashboard/meetings/index'
 import { Route as AuthenticatedDashboardAgentsIndexRouteImport } from './routes/_authenticated/_dashboard/agents/index'
+import { Route as AuthenticatedDashboardAgentsAgentIdRouteImport } from './routes/_authenticated/_dashboard/agents/$agentId'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -65,6 +66,12 @@ const AuthenticatedDashboardAgentsIndexRoute =
     path: '/agents/',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardAgentsAgentIdRoute =
+  AuthenticatedDashboardAgentsAgentIdRouteImport.update({
+    id: '/agents/$agentId',
+    path: '/agents/$agentId',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/users/userId': typeof AuthenticatedUsersUserIdRoute
   '/users': typeof AuthenticatedUsersIndexRoute
+  '/agents/$agentId': typeof AuthenticatedDashboardAgentsAgentIdRoute
   '/agents': typeof AuthenticatedDashboardAgentsIndexRoute
   '/meetings': typeof AuthenticatedDashboardMeetingsIndexRoute
 }
@@ -81,6 +89,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/users/userId': typeof AuthenticatedUsersUserIdRoute
   '/users': typeof AuthenticatedUsersIndexRoute
+  '/agents/$agentId': typeof AuthenticatedDashboardAgentsAgentIdRoute
   '/agents': typeof AuthenticatedDashboardAgentsIndexRoute
   '/meetings': typeof AuthenticatedDashboardMeetingsIndexRoute
 }
@@ -93,6 +102,7 @@ export interface FileRoutesById {
   '/_authenticated/_dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_authenticated/users/userId': typeof AuthenticatedUsersUserIdRoute
   '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
+  '/_authenticated/_dashboard/agents/$agentId': typeof AuthenticatedDashboardAgentsAgentIdRoute
   '/_authenticated/_dashboard/agents/': typeof AuthenticatedDashboardAgentsIndexRoute
   '/_authenticated/_dashboard/meetings/': typeof AuthenticatedDashboardMeetingsIndexRoute
 }
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/users/userId'
     | '/users'
+    | '/agents/$agentId'
     | '/agents'
     | '/meetings'
   fileRoutesByTo: FileRoutesByTo
@@ -113,6 +124,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/users/userId'
     | '/users'
+    | '/agents/$agentId'
     | '/agents'
     | '/meetings'
   id:
@@ -124,6 +136,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_dashboard'
     | '/_authenticated/users/userId'
     | '/_authenticated/users/'
+    | '/_authenticated/_dashboard/agents/$agentId'
     | '/_authenticated/_dashboard/agents/'
     | '/_authenticated/_dashboard/meetings/'
   fileRoutesById: FileRoutesById
@@ -200,16 +213,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardAgentsIndexRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/_dashboard/agents/$agentId': {
+      id: '/_authenticated/_dashboard/agents/$agentId'
+      path: '/agents/$agentId'
+      fullPath: '/agents/$agentId'
+      preLoaderRoute: typeof AuthenticatedDashboardAgentsAgentIdRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
   }
 }
 
 interface AuthenticatedDashboardRouteChildren {
+  AuthenticatedDashboardAgentsAgentIdRoute: typeof AuthenticatedDashboardAgentsAgentIdRoute
   AuthenticatedDashboardAgentsIndexRoute: typeof AuthenticatedDashboardAgentsIndexRoute
   AuthenticatedDashboardMeetingsIndexRoute: typeof AuthenticatedDashboardMeetingsIndexRoute
 }
 
 const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
   {
+    AuthenticatedDashboardAgentsAgentIdRoute:
+      AuthenticatedDashboardAgentsAgentIdRoute,
     AuthenticatedDashboardAgentsIndexRoute:
       AuthenticatedDashboardAgentsIndexRoute,
     AuthenticatedDashboardMeetingsIndexRoute:

@@ -7,7 +7,12 @@ RETURNING *;
 SELECT * FROM agent WHERE id = $1;
 
 -- name: GetAgents :many
-SELECT * FROM agent WHERE user_id = $1;
+SELECT id, name, instructions, user_id, created_at, updated_at, COUNT(*) OVER() as total_count
+FROM agent
+WHERE user_id = $1
+    AND (CASE WHEN $2::text != '' THEN name ILIKE '%' || $2 || '%' ELSE TRUE END)
+ORDER BY updated_at DESC
+LIMIT $3 OFFSET $4;
 
 -- name: GetAgent :one
 SELECT * FROM agent WHERE id = $1 AND user_id = $2;

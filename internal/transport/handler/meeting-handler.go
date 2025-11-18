@@ -10,40 +10,40 @@ import (
 	"github.com/rahulSailesh-shah/converSense/internal/service"
 )
 
-type AgentHandler struct {
-	agentService service.AgentService
+type MeetingHandler struct {
+	meetingService service.MeetingService
 }
 
-func NewAgentHandler(agentService service.AgentService) *AgentHandler {
-	return &AgentHandler{
-		agentService: agentService,
+func NewMeetingHandler(meetingService service.MeetingService) *MeetingHandler {
+	return &MeetingHandler{
+		meetingService: meetingService,
 	}
 }
 
-func (h *AgentHandler) CreateAgent(c *gin.Context) {
-	var req dto.CreateAgentRequest
+func (h *MeetingHandler) CreateMeeting(c *gin.Context) {
+	var req dto.CreateMeetingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 	req.UserID = c.MustGet("userId").(string)
-	agent, err := h.agentService.CreateAgent(c.Request.Context(), req)
+	meeting, err := h.meetingService.CreateMeeting(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Message: "Failed to create agent",
+			Message: "Failed to create meeting",
 			Error:   err.Error(),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, dto.SuccessResponse{
-		Message: "Agent created successfully",
-		Data:    agent,
+		Message: "Meeting created successfully",
+		Data:    meeting,
 	})
 }
 
-func (h *AgentHandler) UpdateAgent(c *gin.Context) {
-	var req dto.UpdateAgentRequest
+func (h *MeetingHandler) UpdateMeeting(c *gin.Context) {
+	var req dto.UpdateMeetingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
@@ -58,27 +58,27 @@ func (h *AgentHandler) UpdateAgent(c *gin.Context) {
 		return
 	}
 	req.UserID = c.MustGet("userId").(string)
-	agent, err := h.agentService.UpdateAgent(c.Request.Context(), req)
+	meeting, err := h.meetingService.UpdateMeeting(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Message: "Failed to update agent",
+			Message: "Failed to update meeting",
 			Error:   err.Error(),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, dto.SuccessResponse{
-		Message: "Agent updated successfully",
-		Data:    agent,
+		Message: "Meeting updated successfully",
+		Data:    meeting,
 	})
 }
 
-func (h *AgentHandler) GetAgents(c *gin.Context) {
+func (h *MeetingHandler) GetMeetings(c *gin.Context) {
 	search := c.DefaultQuery("search", "")
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 
-	agents, err := h.agentService.GetAgents(c.Request.Context(), dto.GetAgentsRequest{
+	meetings, err := h.meetingService.GetMeetings(c.Request.Context(), dto.GetMeetingsRequest{
 		Search: search,
 		Limit:  int32(limit),
 		Offset: int32((page - 1) * limit),
@@ -93,12 +93,12 @@ func (h *AgentHandler) GetAgents(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, dto.SuccessResponse{
-		Message: "Agents retrieved successfully",
-		Data:    agents,
+		Message: "Meetings retrieved successfully",
+		Data:    meetings,
 	})
 }
 
-func (h *AgentHandler) GetAgent(c *gin.Context) {
+func (h *MeetingHandler) GetMeeting(c *gin.Context) {
 	agentId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
@@ -108,7 +108,7 @@ func (h *AgentHandler) GetAgent(c *gin.Context) {
 		return
 	}
 
-	agent, err := h.agentService.GetAgent(c.Request.Context(), dto.GetAgentRequest{
+	meeting, err := h.meetingService.GetMeeting(c.Request.Context(), dto.GetMeetingRequest{
 		ID:     agentId,
 		UserID: c.MustGet("userId").(string),
 	})
@@ -121,12 +121,12 @@ func (h *AgentHandler) GetAgent(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, dto.SuccessResponse{
-		Message: "Agent retrieved successfully",
-		Data:    agent,
+		Message: "Meeting retrieved successfully",
+		Data:    meeting,
 	})
 }
 
-func (h *AgentHandler) DeleteAgent(c *gin.Context) {
+func (h *MeetingHandler) DeleteMeeting(c *gin.Context) {
 	agentId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
@@ -136,7 +136,7 @@ func (h *AgentHandler) DeleteAgent(c *gin.Context) {
 		return
 	}
 
-	err = h.agentService.DeleteAgent(c.Request.Context(), dto.DeleteAgentRequest{
+	err = h.meetingService.DeleteMeeting(c.Request.Context(), dto.DeleteMeetingRequest{
 		ID: agentId,
 	})
 	if err != nil {

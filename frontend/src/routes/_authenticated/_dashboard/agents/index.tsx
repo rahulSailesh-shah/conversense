@@ -4,8 +4,18 @@ import { AgentsListHeader } from "@/modules/agents/ui/components/agents-list-hea
 import { AgentsListView } from "@/modules/agents/ui/views/agents-view";
 import { createFileRoute } from "@tanstack/react-router";
 import { EmptyState } from "@/components/empty-state";
+import { z } from "zod";
+
+const agentSearchSchema = z.object({
+  page: z.number().int().positive().catch(1),
+  limit: z.number().int().positive().catch(5),
+  search: z.string().catch(""),
+});
+
+export type AgentSearchParams = z.infer<typeof agentSearchSchema>;
 
 export const Route = createFileRoute("/_authenticated/_dashboard/agents/")({
+  validateSearch: agentSearchSchema,
   component: RouteComponent,
 });
 
@@ -23,7 +33,7 @@ function RouteComponent() {
           />
         }
       >
-        {(data) => <AgentsListView agents={data} />}
+        {(data) => <AgentsListView data={data} />}
       </QueryBoundary>
     </>
   );

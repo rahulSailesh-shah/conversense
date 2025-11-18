@@ -5,38 +5,38 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import {
-  createAgent,
-  deleteAgent,
-  fetchAgents,
-  getAgentById,
-  updateAgent,
+  createMeeting,
+  deleteMeeting,
+  fetchMeetings,
+  getMeetingById,
+  updateMeeting,
 } from "../api";
-import type { AgentData, AgentUpdateData } from "../types";
+import type { MeetingData, MeetingUpdateData } from "../types";
 import { useSearch } from "@tanstack/react-router";
 
-export const useQueryAgents = () => {
+export const useQueryMeetings = () => {
   const search = useSearch({
-    from: "/_authenticated/_dashboard/agents/",
+    from: "/_authenticated/_dashboard/meetings/",
   });
   return useQuery({
-    queryKey: ["agents", search],
-    queryFn: () => fetchAgents(search),
+    queryKey: ["meetings", search],
+    queryFn: () => fetchMeetings(search),
     retry: 0,
     placeholderData: keepPreviousData,
   });
 };
 
-export const useQueryAgent = (agentId: string) => {
+export const useQueryMeeting = (meetingId: string) => {
   return useQuery({
-    queryKey: ["agent", agentId],
-    queryFn: () => getAgentById(agentId),
+    queryKey: ["meeting", meetingId],
+    queryFn: () => getMeetingById(meetingId),
   });
 };
 
-export const useMutationCreateAgent = () => {
+export const useMutationCreateMeeting = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: AgentData) => createAgent(data),
+    mutationFn: (data: MeetingData) => createMeeting(data),
     onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: ["agents"],
@@ -51,10 +51,10 @@ export const useMutationCreateAgent = () => {
   });
 };
 
-export const useMutationUpdateAgent = () => {
+export const useMutationUpdateMeeting = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: AgentUpdateData) => updateAgent(data),
+    mutationFn: (data: MeetingUpdateData) => updateMeeting(data),
     onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: ["agents"],
@@ -69,13 +69,13 @@ export const useMutationUpdateAgent = () => {
   });
 };
 
-export const useMutationDeleteAgent = () => {
+export const useMutationDeleteMeeting = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (agentId: string) => deleteAgent(agentId),
+    mutationFn: (meetingId: string) => deleteMeeting(meetingId),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["agents"],
+        queryKey: ["meetings"],
       });
     },
     onError: () => {},

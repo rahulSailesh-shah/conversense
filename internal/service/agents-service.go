@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rahulSailesh-shah/converSense/internal/db/repo"
@@ -12,7 +11,7 @@ import (
 type AgentService interface {
 	CreateAgent(ctx context.Context, request dto.CreateAgentRequest) (*dto.AgentResponse, error)
 	UpdateAgent(ctx context.Context, request dto.UpdateAgentRequest) (*dto.AgentResponse, error)
-	GetAgents(ctx context.Context, request dto.GetAgentsRequest) ([]*dto.AgentResponse, error)
+	GetAgents(ctx context.Context, request dto.GetAgentsRequest) (*dto.PaginatedAgentsResponse, error)
 	GetAgent(ctx context.Context, request dto.GetAgentRequest) (*dto.AgentResponse, error)
 	DeleteAgent(ctx context.Context, request dto.DeleteAgentRequest) error
 }
@@ -69,18 +68,44 @@ func (s *agentService) UpdateAgent(ctx context.Context, request dto.UpdateAgentR
 	return toAgentResponse(updatedAgent), nil
 }
 
-func (s *agentService) GetAgents(ctx context.Context, request dto.GetAgentsRequest) ([]*dto.AgentResponse, error) {
-	agents, err := s.queries.GetAgents(ctx, request.UserID)
+func (s *agentService) GetAgents(ctx context.Context, request dto.GetAgentsRequest) (*dto.PaginatedAgentsResponse, error) {
+	rows, err := s.queries.GetAgents(ctx, repo.GetAgentsParams{
+		UserID:  request.UserID,
+		Column2: request.Search,
+		Limit:   request.Limit,
+		Offset:  request.Offset,
+	})
 	if err != nil {
-		fmt.Println("Error fetching agents:", err)
 		return nil, err
 	}
 
-	var responses []*dto.AgentResponse
-	for _, agent := range agents {
-		responses = append(responses, toAgentResponse(agent))
+	var totalCount int32
+	if len(rows) > 0 {
+		totalCount = int32(rows[0].TotalCount)
 	}
-	return responses, nil
+	agents := make([]dto.AgentResponse, 0, len(rows))
+	for _, row := range rows {
+		agents = append(agents, dto.AgentResponse{
+			ID:           row.ID,
+			UserID:       row.UserID,
+			Name:         row.Name,
+			Instructions: row.Instructions,
+			CreatedAt:    row.CreatedAt,
+			UpdatedAt:    row.UpdatedAt,
+		})
+	}
+
+	currentPage := (request.Offset / request.Limit) + 1
+	totalPages := (totalCount + request.Limit - 1) / request.Limit
+
+	return &dto.PaginatedAgentsResponse{
+		Agents:          agents,
+		HasNextPage:     currentPage < totalPages,
+		HasPreviousPage: currentPage > 1,
+		TotalCount:      totalCount,
+		CurrentPage:     currentPage,
+		TotalPages:      totalPages,
+	}, nil
 }
 
 func (s *agentService) DeleteAgent(ctx context.Context, request dto.DeleteAgentRequest) error {

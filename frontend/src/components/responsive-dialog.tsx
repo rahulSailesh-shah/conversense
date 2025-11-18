@@ -26,8 +26,6 @@ export const ResponsiveDialog = ({
 }: ResponsiveDialogProps) => {
   const isMobile = useIsMobile();
 
-  console.log("Rendering ResponsiveDialog, isMobile:", isMobile);
-
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>

@@ -6,11 +6,13 @@ import (
 )
 
 type Service struct {
-	Agent AgentService
+	Agent   AgentService
+	Meeting MeetingService
 }
 
 func NewService(db *pgxpool.Pool, queries *repo.Queries) *Service {
 	return &Service{
-		Agent: NewAgentService(db, queries),
+		Agent:   NewAgentService(db, queries),
+		Meeting: NewMeetingService(db, queries),
 	}
 }

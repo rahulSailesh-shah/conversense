@@ -18,3 +18,18 @@ type Agent struct {
 	CreatedAt    time.Time `db:"created_at" json:"createdAt"`
 	UpdatedAt    time.Time `db:"updated_at" json:"updatedAt"`
 }
+
+type Meeting struct {
+	ID            uuid.UUID  `db:"id" json:"id"`
+	Name          string     `db:"name" json:"name"`
+	UserID        string     `db:"user_id" json:"userId"`
+	AgentID       uuid.UUID  `db:"agent_id" json:"agentId"`
+	StartTime     *time.Time `db:"start_time" json:"startTime"`
+	EndTime       *time.Time `db:"end_time" json:"endTime"`
+	Status        string     `db:"status" json:"status"`
+	TranscriptUrl *string    `db:"transcript_url" json:"transcriptUrl"`
+	RecordingUrl  *string    `db:"recording_url" json:"recordingUrl"`
+	Summary       *string    `db:"summary" json:"summary"`
+	CreatedAt     time.Time  `db:"created_at" json:"createdAt"`
+	UpdatedAt     time.Time  `db:"updated_at" json:"updatedAt"`
+}

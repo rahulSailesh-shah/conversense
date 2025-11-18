@@ -21,6 +21,9 @@ type UpdateAgentRequest struct {
 
 type GetAgentsRequest struct {
 	UserID string `form:"userId"`
+	Search string `form:"search"`
+	Limit  int32  `form:"limit"`
+	Offset int32  `form:"offset"`
 }
 
 type GetAgentRequest struct {
@@ -40,4 +43,13 @@ type AgentResponse struct {
 	Instructions string    `db:"instructions" json:"instructions"`
 	CreatedAt    time.Time `db:"created_at" json:"createdAt"`
 	UpdatedAt    time.Time `db:"updated_at" json:"updatedAt"`
+}
+
+type PaginatedAgentsResponse struct {
+	Agents          []AgentResponse `json:"agents"`
+	HasNextPage     bool            `json:"hasNextPage"`
+	HasPreviousPage bool            `json:"hasPreviousPage"`
+	TotalCount      int32           `json:"totalCount"`
+	CurrentPage     int32           `json:"currentPage"`
+	TotalPages      int32           `json:"totalPages"`
 }

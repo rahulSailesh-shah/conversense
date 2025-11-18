@@ -17,10 +17,16 @@ sql:
         emit_pointers_for_null_types: true
         sql_package: "pgx/v5"
         overrides:
-          # - column: "node.position"
-          #   go_type:
-          #     import: "encoding/json"
-          #     type: "RawMessage"
+          - column: "meeting.start_time"
+            go_type:
+              import: "time"
+              type: "Time"
+              pointer: true
+          - column: "meeting.end_time"
+            go_type:
+              import: "time"
+              type: "Time"
+              pointer: true
           - db_type: "timestamptz"
             go_type:
               import: "time"

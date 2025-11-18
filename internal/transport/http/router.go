@@ -41,4 +41,15 @@ func RegisterRoutes(r *gin.Engine, authKeys jwk.Set, app *app.App) {
 		agentRoutes.GET("/:id", agentHandler.GetAgent)
 		agentRoutes.DELETE("/:id", agentHandler.DeleteAgent)
 	}
+
+	// Meeting routes
+	meetingRoutes := protected.Group("/meetings")
+	meetingHandler := handler.NewMeetingHandler(app.Service.Meeting)
+	{
+		meetingRoutes.POST("", meetingHandler.CreateMeeting)
+		meetingRoutes.PUT("/:id", meetingHandler.UpdateMeeting)
+		meetingRoutes.GET("", meetingHandler.GetMeetings)
+		meetingRoutes.GET("/:id", meetingHandler.GetMeeting)
+		meetingRoutes.DELETE("/:id", meetingHandler.DeleteMeeting)
+	}
 }

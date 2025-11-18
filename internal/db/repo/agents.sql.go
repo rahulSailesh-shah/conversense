@@ -7,6 +7,7 @@ package repo
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -97,25 +98,53 @@ func (q *Queries) GetAgentByID(ctx context.Context, id uuid.UUID) (Agent, error)
 }
 
 const getAgents = `-- name: GetAgents :many
-SELECT id, name, user_id, instructions, created_at, updated_at FROM agent WHERE user_id = $1
+SELECT id, name, instructions, user_id, created_at, updated_at, COUNT(*) OVER() as total_count
+FROM agent
+WHERE user_id = $1
+    AND (CASE WHEN $2::text != '' THEN name ILIKE '%' || $2 || '%' ELSE TRUE END)
+ORDER BY updated_at DESC
+LIMIT $3 OFFSET $4
 `
 
-func (q *Queries) GetAgents(ctx context.Context, userID string) ([]Agent, error) {
-	rows, err := q.db.Query(ctx, getAgents, userID)
+type GetAgentsParams struct {
+	UserID  string `db:"user_id" json:"userId"`
+	Column2 string `db:"column_2" json:"column2"`
+	Limit   int32  `db:"limit" json:"limit"`
+	Offset  int32  `db:"offset" json:"offset"`
+}
+
+type GetAgentsRow struct {
+	ID           uuid.UUID `db:"id" json:"id"`
+	Name         string    `db:"name" json:"name"`
+	Instructions string    `db:"instructions" json:"instructions"`
+	UserID       string    `db:"user_id" json:"userId"`
+	CreatedAt    time.Time `db:"created_at" json:"createdAt"`
+	UpdatedAt    time.Time `db:"updated_at" json:"updatedAt"`
+	TotalCount   int64     `db:"total_count" json:"totalCount"`
+}
+
+func (q *Queries) GetAgents(ctx context.Context, arg GetAgentsParams) ([]GetAgentsRow, error) {
+	rows, err := q.db.Query(ctx, getAgents,
+		arg.UserID,
+		arg.Column2,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Agent{}
+	items := []GetAgentsRow{}
 	for rows.Next() {
-		var i Agent
+		var i GetAgentsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
-			&i.UserID,
 			&i.Instructions,
+			&i.UserID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.TotalCount,
 		); err != nil {
 			return nil, err
 		}

@@ -1,12 +1,12 @@
-import { agentInsertSchema } from "../../types";
-import type { Agent } from "../../types";
+import { meetingInsertSchema } from "../../types";
+import type { Meeting } from "../../types";
 import { useForm } from "react-hook-form";
 import type z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  useMutationCreateAgent,
-  useMutationUpdateAgent,
-} from "../../hooks/use-agents";
+  useMutationCreateMeeting,
+  useMutationUpdateMeeting,
+} from "../../hooks/use-meetings";
 import {
   Form,
   FormControl,
@@ -17,14 +17,13 @@ import {
 } from "@/components/ui/form";
 import { GeneratedAvatar } from "@/components/generated-avatar";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 interface AgentFormProps {
   onSuccess?: () => void;
   onCancel?: () => void;
-  initialValues?: Agent;
+  initialValues?: Meeting;
 }
 
 export const AgentForm = ({
@@ -32,24 +31,24 @@ export const AgentForm = ({
   onCancel,
   initialValues,
 }: AgentFormProps) => {
-  const createAgentMutation = useMutationCreateAgent();
-  const updateAgentMutation = useMutationUpdateAgent();
+  const createMeetingMutation = useMutationCreateMeeting();
+  const updateMeetingMutation = useMutationUpdateMeeting();
 
   const isEdit = !!initialValues?.id;
   const isPending =
-    createAgentMutation.isPending || updateAgentMutation.isPending;
+    createMeetingMutation.isPending || updateMeetingMutation.isPending;
 
-  const form = useForm<z.infer<typeof agentInsertSchema>>({
-    resolver: zodResolver(agentInsertSchema),
+  const form = useForm<z.infer<typeof meetingInsertSchema>>({
+    resolver: zodResolver(meetingInsertSchema),
     defaultValues: {
       name: initialValues?.name ?? "",
-      instructions: initialValues?.instructions ?? "",
+      agentId: initialValues?.agentId ?? "",
     },
   });
 
-  const onSubmit = (data: z.infer<typeof agentInsertSchema>) => {
+  const onSubmit = (data: z.infer<typeof meetingInsertSchema>) => {
     if (isEdit) {
-      updateAgentMutation.mutate(
+      updateMeetingMutation.mutate(
         {
           id: initialValues?.id,
           ...data,
@@ -65,7 +64,7 @@ export const AgentForm = ({
         }
       );
     } else {
-      createAgentMutation.mutate(data, {
+      createMeetingMutation.mutate(data, {
         onSuccess: () => {
           onSuccess?.();
         },
@@ -102,15 +101,12 @@ export const AgentForm = ({
 
         <FormField
           control={form.control}
-          name="instructions"
+          name="agentId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Instructions</FormLabel>
+              <FormLabel>Agent ID</FormLabel>
               <FormControl>
-                <Textarea
-                  placeholder="You are a helpful assistant that can answer questions about marketing."
-                  {...field}
-                />
+                <Input placeholder="e.g. Marketing Assistant" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
