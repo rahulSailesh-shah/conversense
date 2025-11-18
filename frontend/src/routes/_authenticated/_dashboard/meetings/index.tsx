@@ -4,6 +4,7 @@ import { useQueryMeetings } from "@/modules/meetings/hooks/use-meetings";
 import { MeetingsListView } from "@/modules/meetings/ui/views/meetings-view";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+import { MeetingsListHeader } from "@/modules/meetings/ui/components/meetings-list-header";
 
 const meetingSearchSchema = z.object({
   page: z.number().int().positive().catch(1),
@@ -23,6 +24,7 @@ function RouteComponent() {
 
   return (
     <>
+      <MeetingsListHeader />
       <QueryBoundary
         query={meetingsQuery}
         emptyFallback={

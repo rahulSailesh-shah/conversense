@@ -41,6 +41,9 @@ export const useMutationCreateAgent = () => {
       queryClient.invalidateQueries({
         queryKey: ["agents"],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["search_agents"],
+      });
       if (data?.id) {
         queryClient.invalidateQueries({
           queryKey: ["agent", data.id],

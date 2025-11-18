@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createMeeting = `-- name: CreateMeeting :one
@@ -64,7 +63,23 @@ func (q *Queries) DeleteMeetingsByUserID(ctx context.Context, userID string) err
 }
 
 const getMeeting = `-- name: GetMeeting :one
-SELECT id, name, user_id, agent_id, start_time, end_time, status, transcript_url, recording_url, summary, created_at, updated_at FROM meeting WHERE id = $1 AND user_id = $2
+SELECT
+    m.id,
+    m.name,
+    m.user_id,
+    m.agent_id,
+    m.start_time,
+    m.end_time,
+    m.status,
+    m.created_at,
+    m.updated_at,
+    a.name AS agent_name,
+    a.instructions AS agent_instructions
+FROM meeting AS m
+JOIN agent AS a
+    ON m.agent_id = a.id
+WHERE m.id = $1
+    AND m.user_id = $2
 `
 
 type GetMeetingParams struct {
@@ -72,9 +87,23 @@ type GetMeetingParams struct {
 	UserID string    `db:"user_id" json:"userId"`
 }
 
-func (q *Queries) GetMeeting(ctx context.Context, arg GetMeetingParams) (Meeting, error) {
+type GetMeetingRow struct {
+	ID                uuid.UUID  `db:"id" json:"id"`
+	Name              string     `db:"name" json:"name"`
+	UserID            string     `db:"user_id" json:"userId"`
+	AgentID           uuid.UUID  `db:"agent_id" json:"agentId"`
+	StartTime         *time.Time `db:"start_time" json:"startTime"`
+	EndTime           *time.Time `db:"end_time" json:"endTime"`
+	Status            string     `db:"status" json:"status"`
+	CreatedAt         time.Time  `db:"created_at" json:"createdAt"`
+	UpdatedAt         time.Time  `db:"updated_at" json:"updatedAt"`
+	AgentName         string     `db:"agent_name" json:"agentName"`
+	AgentInstructions string     `db:"agent_instructions" json:"agentInstructions"`
+}
+
+func (q *Queries) GetMeeting(ctx context.Context, arg GetMeetingParams) (GetMeetingRow, error) {
 	row := q.db.QueryRow(ctx, getMeeting, arg.ID, arg.UserID)
-	var i Meeting
+	var i GetMeetingRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -83,11 +112,10 @@ func (q *Queries) GetMeeting(ctx context.Context, arg GetMeetingParams) (Meeting
 		&i.StartTime,
 		&i.EndTime,
 		&i.Status,
-		&i.TranscriptUrl,
-		&i.RecordingUrl,
-		&i.Summary,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AgentName,
+		&i.AgentInstructions,
 	)
 	return i, err
 }
@@ -129,11 +157,9 @@ SELECT
     m.updated_at,
     COUNT(*) OVER() as total_count,
     a.name AS agent_name,
-    a.instructions AS agent_instructions,
-    a.created_at AS agent_created_at,
-    a.updated_at AS agent_updated_at
+    a.instructions AS agent_instructions
 FROM meeting AS m
-LEFT JOIN agent AS a
+JOIN agent AS a
     ON m.agent_id = a.id
 WHERE m.user_id = $1
     AND (
@@ -154,20 +180,18 @@ type GetMeetingsParams struct {
 }
 
 type GetMeetingsRow struct {
-	ID                uuid.UUID          `db:"id" json:"id"`
-	Name              string             `db:"name" json:"name"`
-	UserID            string             `db:"user_id" json:"userId"`
-	AgentID           uuid.UUID          `db:"agent_id" json:"agentId"`
-	StartTime         *time.Time         `db:"start_time" json:"startTime"`
-	EndTime           *time.Time         `db:"end_time" json:"endTime"`
-	Status            string             `db:"status" json:"status"`
-	CreatedAt         time.Time          `db:"created_at" json:"createdAt"`
-	UpdatedAt         time.Time          `db:"updated_at" json:"updatedAt"`
-	TotalCount        int64              `db:"total_count" json:"totalCount"`
-	AgentName         *string            `db:"agent_name" json:"agentName"`
-	AgentInstructions *string            `db:"agent_instructions" json:"agentInstructions"`
-	AgentCreatedAt    pgtype.Timestamptz `db:"agent_created_at" json:"agentCreatedAt"`
-	AgentUpdatedAt    pgtype.Timestamptz `db:"agent_updated_at" json:"agentUpdatedAt"`
+	ID                uuid.UUID  `db:"id" json:"id"`
+	Name              string     `db:"name" json:"name"`
+	UserID            string     `db:"user_id" json:"userId"`
+	AgentID           uuid.UUID  `db:"agent_id" json:"agentId"`
+	StartTime         *time.Time `db:"start_time" json:"startTime"`
+	EndTime           *time.Time `db:"end_time" json:"endTime"`
+	Status            string     `db:"status" json:"status"`
+	CreatedAt         time.Time  `db:"created_at" json:"createdAt"`
+	UpdatedAt         time.Time  `db:"updated_at" json:"updatedAt"`
+	TotalCount        int64      `db:"total_count" json:"totalCount"`
+	AgentName         string     `db:"agent_name" json:"agentName"`
+	AgentInstructions string     `db:"agent_instructions" json:"agentInstructions"`
 }
 
 func (q *Queries) GetMeetings(ctx context.Context, arg GetMeetingsParams) ([]GetMeetingsRow, error) {
@@ -197,8 +221,6 @@ func (q *Queries) GetMeetings(ctx context.Context, arg GetMeetingsParams) ([]Get
 			&i.TotalCount,
 			&i.AgentName,
 			&i.AgentInstructions,
-			&i.AgentCreatedAt,
-			&i.AgentUpdatedAt,
 		); err != nil {
 			return nil, err
 		}

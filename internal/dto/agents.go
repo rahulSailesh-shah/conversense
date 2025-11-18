@@ -36,6 +36,11 @@ type DeleteAgentRequest struct {
 	UserID string    `json:"-"`
 }
 
+type AgentDetails struct {
+	Name         string `db:"agent_name" json:"name"`
+	Instructions string `db:"agent_instructions" json:"instructions"`
+}
+
 type AgentResponse struct {
 	ID           uuid.UUID `db:"id" json:"id"`
 	Name         string    `db:"name" json:"name"`

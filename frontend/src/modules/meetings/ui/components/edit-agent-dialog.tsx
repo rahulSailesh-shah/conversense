@@ -1,5 +1,5 @@
 import { ResponsiveDialog } from "@/components/responsive-dialog";
-import { AgentForm } from "./agent-form";
+import { AgentForm } from "./meeting-form";
 import type { Meeting } from "../../types";
 
 interface EditAgentDialogProps {

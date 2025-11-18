@@ -1,12 +1,12 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { Route } from "@/routes/_authenticated/_dashboard/agents";
+import { Route } from "@/routes/_authenticated/_dashboard/meetings";
 import { useEntitySearch } from "@/hooks/use-search";
 import { SearchIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
-export const AgentsSearch = () => {
+export const MeetingsSearch = () => {
   const search = useSearch({
-    from: "/_authenticated/_dashboard/agents/",
+    from: "/_authenticated/_dashboard/meetings/",
   });
 
   const navigate = useNavigate({
@@ -26,7 +26,7 @@ export const AgentsSearch = () => {
         type="text"
         value={searchValue}
         onChange={(e) => onSearchChange(e.target.value)}
-        placeholder="Search agents"
+        placeholder="Search meetings"
       />
     </div>
   );

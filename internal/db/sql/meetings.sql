@@ -19,11 +19,9 @@ SELECT
     m.updated_at,
     COUNT(*) OVER() as total_count,
     a.name AS agent_name,
-    a.instructions AS agent_instructions,
-    a.created_at AS agent_created_at,
-    a.updated_at AS agent_updated_at
+    a.instructions AS agent_instructions
 FROM meeting AS m
-LEFT JOIN agent AS a
+JOIN agent AS a
     ON m.agent_id = a.id
 WHERE m.user_id = $1
     AND (
@@ -37,7 +35,23 @@ LIMIT $3 OFFSET $4;
 
 
 -- name: GetMeeting :one
-SELECT * FROM meeting WHERE id = $1 AND user_id = $2;
+SELECT
+    m.id,
+    m.name,
+    m.user_id,
+    m.agent_id,
+    m.start_time,
+    m.end_time,
+    m.status,
+    m.created_at,
+    m.updated_at,
+    a.name AS agent_name,
+    a.instructions AS agent_instructions
+FROM meeting AS m
+JOIN agent AS a
+    ON m.agent_id = a.id
+WHERE m.id = $1
+    AND m.user_id = $2;
 
 -- name: UpdateMeeting :one
 UPDATE meeting

@@ -2,8 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -84,10 +82,6 @@ func (s *meetingService) GetMeetings(ctx context.Context, request dto.GetMeeting
 		Limit:   request.Limit,
 		Offset:  request.Offset,
 	})
-
-	data, err := json.MarshalIndent(rows, "", "  ")
-	fmt.Println(string(data))
-
 	if err != nil {
 		return nil, err
 	}
@@ -96,9 +90,9 @@ func (s *meetingService) GetMeetings(ctx context.Context, request dto.GetMeeting
 	if len(rows) > 0 {
 		totalCount = int32(rows[0].TotalCount)
 	}
-	agents := make([]dto.MeetingResponse, 0, len(rows))
+	meetings := make([]dto.MeetingResponse, 0, len(rows))
 	for _, row := range rows {
-		agents = append(agents, dto.MeetingResponse{
+		meetings = append(meetings, dto.MeetingResponse{
 			ID:        row.ID,
 			UserID:    row.UserID,
 			Name:      row.Name,
@@ -106,6 +100,10 @@ func (s *meetingService) GetMeetings(ctx context.Context, request dto.GetMeeting
 			Status:    row.Status,
 			CreatedAt: row.CreatedAt,
 			UpdatedAt: row.UpdatedAt,
+			AgentDetails: &dto.AgentDetails{
+				Name:         row.AgentName,
+				Instructions: row.AgentInstructions,
+			},
 		})
 	}
 
@@ -113,7 +111,7 @@ func (s *meetingService) GetMeetings(ctx context.Context, request dto.GetMeeting
 	totalPages := (totalCount + request.Limit - 1) / request.Limit
 
 	return &dto.PaginatedMeetingsResponse{
-		Meetings:        agents,
+		Meetings:        meetings,
 		HasNextPage:     currentPage < totalPages,
 		HasPreviousPage: currentPage > 1,
 		TotalCount:      totalCount,
@@ -138,10 +136,10 @@ func (s *meetingService) GetMeeting(ctx context.Context, request dto.GetMeetingR
 	if err != nil {
 		return nil, err
 	}
-	return toMeetingResponse(meeting), nil
+	return toMeetingAgentResponse(meeting), nil
 }
 
-func toMeetingResponse(meeting repo.Meeting) *dto.MeetingResponse {
+func toMeetingAgentResponse(meeting repo.GetMeetingRow) *dto.MeetingResponse {
 	return &dto.MeetingResponse{
 		ID:        meeting.ID,
 		Name:      meeting.Name,
@@ -150,5 +148,24 @@ func toMeetingResponse(meeting repo.Meeting) *dto.MeetingResponse {
 		Status:    meeting.Status,
 		CreatedAt: meeting.CreatedAt,
 		UpdatedAt: meeting.UpdatedAt,
+		AgentDetails: &dto.AgentDetails{
+			Name:         meeting.AgentName,
+			Instructions: meeting.AgentInstructions,
+		},
+	}
+}
+
+func toMeetingResponse(meeting repo.Meeting) *dto.MeetingResponse {
+	return &dto.MeetingResponse{
+		ID:            meeting.ID,
+		Name:          meeting.Name,
+		UserID:        meeting.UserID,
+		AgentID:       meeting.AgentID,
+		Status:        meeting.Status,
+		TranscriptUrl: meeting.TranscriptUrl,
+		RecordingUrl:  meeting.RecordingUrl,
+		Summary:       meeting.Summary,
+		CreatedAt:     meeting.CreatedAt,
+		UpdatedAt:     meeting.UpdatedAt,
 	}
 }
