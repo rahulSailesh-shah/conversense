@@ -51,5 +51,6 @@ func RegisterRoutes(r *gin.Engine, authKeys jwk.Set, app *app.App) {
 		meetingRoutes.GET("", meetingHandler.GetMeetings)
 		meetingRoutes.GET("/:id", meetingHandler.GetMeeting)
 		meetingRoutes.DELETE("/:id", meetingHandler.DeleteMeeting)
+		meetingRoutes.POST("/:id/start", meetingHandler.StartMeeting)
 	}
 }

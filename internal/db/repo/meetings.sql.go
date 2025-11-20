@@ -73,6 +73,9 @@ SELECT
     m.status,
     m.created_at,
     m.updated_at,
+    m.transcript_url,
+    m.recording_url,
+    m.summary,
     a.name AS agent_name,
     a.instructions AS agent_instructions
 FROM meeting AS m
@@ -97,6 +100,9 @@ type GetMeetingRow struct {
 	Status            string     `db:"status" json:"status"`
 	CreatedAt         time.Time  `db:"created_at" json:"createdAt"`
 	UpdatedAt         time.Time  `db:"updated_at" json:"updatedAt"`
+	TranscriptUrl     *string    `db:"transcript_url" json:"transcriptUrl"`
+	RecordingUrl      *string    `db:"recording_url" json:"recordingUrl"`
+	Summary           *string    `db:"summary" json:"summary"`
 	AgentName         string     `db:"agent_name" json:"agentName"`
 	AgentInstructions string     `db:"agent_instructions" json:"agentInstructions"`
 }
@@ -114,6 +120,9 @@ func (q *Queries) GetMeeting(ctx context.Context, arg GetMeetingParams) (GetMeet
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.TranscriptUrl,
+		&i.RecordingUrl,
+		&i.Summary,
 		&i.AgentName,
 		&i.AgentInstructions,
 	)
@@ -235,27 +244,44 @@ func (q *Queries) GetMeetings(ctx context.Context, arg GetMeetingsParams) ([]Get
 const updateMeeting = `-- name: UpdateMeeting :one
 UPDATE meeting
 SET
-    name = COALESCE($2, name),
-    agent_id = COALESCE($3, agent_id),
-    status = COALESCE($4, status),
+    name = COALESCE($3, name),
+    agent_id = COALESCE($4, agent_id),
+    status = COALESCE($5, status),
+    start_time = COALESCE($6, start_time),
+    end_time = COALESCE($7, end_time),
+    transcript_url = COALESCE($8, transcript_url),
+    recording_url = COALESCE($9, recording_url),
+    summary = COALESCE($10, summary),
     updated_at = NOW()
-WHERE id = $1
+WHERE id = $1 AND user_id = $2
 RETURNING id, name, user_id, agent_id, start_time, end_time, status, transcript_url, recording_url, summary, created_at, updated_at
 `
 
 type UpdateMeetingParams struct {
-	ID      uuid.UUID `db:"id" json:"id"`
-	Name    string    `db:"name" json:"name"`
-	AgentID uuid.UUID `db:"agent_id" json:"agentId"`
-	Status  string    `db:"status" json:"status"`
+	ID            uuid.UUID  `db:"id" json:"id"`
+	UserID        string     `db:"user_id" json:"userId"`
+	Name          string     `db:"name" json:"name"`
+	AgentID       uuid.UUID  `db:"agent_id" json:"agentId"`
+	Status        string     `db:"status" json:"status"`
+	StartTime     *time.Time `db:"start_time" json:"startTime"`
+	EndTime       *time.Time `db:"end_time" json:"endTime"`
+	TranscriptUrl *string    `db:"transcript_url" json:"transcriptUrl"`
+	RecordingUrl  *string    `db:"recording_url" json:"recordingUrl"`
+	Summary       *string    `db:"summary" json:"summary"`
 }
 
 func (q *Queries) UpdateMeeting(ctx context.Context, arg UpdateMeetingParams) (Meeting, error) {
 	row := q.db.QueryRow(ctx, updateMeeting,
 		arg.ID,
+		arg.UserID,
 		arg.Name,
 		arg.AgentID,
 		arg.Status,
+		arg.StartTime,
+		arg.EndTime,
+		arg.TranscriptUrl,
+		arg.RecordingUrl,
+		arg.Summary,
 	)
 	var i Meeting
 	err := row.Scan(

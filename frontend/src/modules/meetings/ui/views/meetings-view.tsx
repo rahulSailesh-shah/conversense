@@ -1,5 +1,7 @@
 import type { PaginatedMeetingResponse } from "../../types";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { DataTable } from "../components/data-table";
+import { columns } from "../components/columns";
+import { useRouter, useNavigate, useSearch } from "@tanstack/react-router";
 import { Route } from "@/routes/_authenticated/_dashboard/meetings";
 import { EmptyState } from "@/components/empty-state";
 import { Pagination } from "@/components/pagination";
@@ -10,6 +12,8 @@ export const MeetingsListView = ({
   data: PaginatedMeetingResponse;
 }) => {
   const totalPages = data.totalPages || 1;
+
+  const router = useRouter();
 
   const search = useSearch({
     from: "/_authenticated/_dashboard/meetings/",
@@ -28,7 +32,15 @@ export const MeetingsListView = ({
         />
       ) : (
         <>
-          {JSON.stringify(data)}
+          <DataTable
+            columns={columns}
+            data={data.meetings}
+            onRowClick={(row) =>
+              router.navigate({
+                to: `/meetings/${row.id}`,
+              })
+            }
+          />
           <Pagination
             page={search.page}
             totalPages={totalPages}

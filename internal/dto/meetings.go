@@ -13,12 +13,22 @@ type CreateMeetingRequest struct {
 	AgentID uuid.UUID `json:"agentId" binding:"required"`
 }
 
+type StartMeetingRequest struct {
+	ID     uuid.UUID `json:"-"`
+	UserID string    `json:"-"`
+}
+
 type UpdateMeetingRequest struct {
-	ID      uuid.UUID `json:"-"`
-	UserID  string    `json:"-"`
-	Name    string    `json:"name,omitempty"`
-	AgentID uuid.UUID `json:"agentId,omitempty"`
-	Status  string    `json:"status,omitempty"`
+	ID            uuid.UUID  `json:"-"`
+	UserID        string     `json:"-"`
+	Name          string     `json:"name,omitempty"`
+	AgentID       uuid.UUID  `json:"agentId,omitempty"`
+	Status        string     `json:"status,omitempty"`
+	StartTime     *time.Time `json:"startTime,omitempty"`
+	EndTime       *time.Time `json:"endTime,omitempty"`
+	TranscriptURL *string    `json:"transcriptUrl,omitempty"`
+	RecordingURL  *string    `json:"recordingUrl,omitempty"`
+	Summary       *string    `json:"summary,omitempty"`
 }
 
 type GetMeetingsRequest struct {

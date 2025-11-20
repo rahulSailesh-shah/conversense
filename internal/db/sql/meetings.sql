@@ -45,6 +45,9 @@ SELECT
     m.status,
     m.created_at,
     m.updated_at,
+    m.transcript_url,
+    m.recording_url,
+    m.summary,
     a.name AS agent_name,
     a.instructions AS agent_instructions
 FROM meeting AS m
@@ -56,11 +59,16 @@ WHERE m.id = $1
 -- name: UpdateMeeting :one
 UPDATE meeting
 SET
-    name = COALESCE($2, name),
-    agent_id = COALESCE($3, agent_id),
-    status = COALESCE($4, status),
+    name = COALESCE($3, name),
+    agent_id = COALESCE($4, agent_id),
+    status = COALESCE($5, status),
+    start_time = COALESCE($6, start_time),
+    end_time = COALESCE($7, end_time),
+    transcript_url = COALESCE($8, transcript_url),
+    recording_url = COALESCE($9, recording_url),
+    summary = COALESCE($10, summary),
     updated_at = NOW()
-WHERE id = $1
+WHERE id = $1 AND user_id = $2
 RETURNING *;
 
 -- name: DeleteMeeting :exec

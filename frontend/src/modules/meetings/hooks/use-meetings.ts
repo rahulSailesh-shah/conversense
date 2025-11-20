@@ -9,6 +9,7 @@ import {
   deleteMeeting,
   fetchMeetings,
   getMeetingById,
+  startMeeting,
   updateMeeting,
 } from "../api";
 import type { MeetingData, MeetingUpdateData } from "../types";
@@ -76,6 +77,22 @@ export const useMutationDeleteMeeting = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["meetings"],
+      });
+    },
+    onError: () => {},
+  });
+};
+
+export const useMutationStartMeeting = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (meetingId: string) => startMeeting(meetingId),
+    onSuccess: (_, meetingId) => {
+      queryClient.invalidateQueries({
+        queryKey: ["meetings"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["meeting", meetingId],
       });
     },
     onError: () => {},

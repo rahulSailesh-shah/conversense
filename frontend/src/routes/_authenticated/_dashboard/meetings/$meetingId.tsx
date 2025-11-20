@@ -4,6 +4,7 @@ import { useQueryMeeting } from "@/modules/meetings/hooks/use-meetings";
 // import { MeetingDetailsView } from "@/modules/meetings/ui/views/meeting-details-view";
 import { createFileRoute } from "@tanstack/react-router";
 import { EmptyState } from "@/components/empty-state";
+import { MeetingDetailsView } from "@/modules/meetings/ui/views/meeting-details-view";
 
 export const Route = createFileRoute(
   "/_authenticated/_dashboard/meetings/$meetingId"
@@ -25,7 +26,7 @@ function RouteComponent() {
           />
         }
       >
-        {(data) => <h1>{data?.name}</h1>}
+        {(data) => <MeetingDetailsView data={data} />}
       </QueryBoundary>
     </>
   );

@@ -7,6 +7,16 @@ export interface Meeting {
   agentId: string;
   createdAt: string;
   updatedAt: string;
+  startTime: string | null;
+  endTime: string | null;
+  status: "upcoming" | "active" | "completed" | "cancelled" | "processing";
+  transcriptUrl: string | null;
+  recordingUrl: string | null;
+  summary: string | null;
+  agentDetails: {
+    name: string;
+    instructions: string;
+  };
 }
 
 export interface PaginatedMeetingResponse {
@@ -28,6 +38,10 @@ export const meetingUpdateSchema = z.object({
   agentId: z.string().min(1, "Agent ID is required"),
   id: z.string(),
 });
+
+export interface StartMeetingResponse {
+  token: string;
+}
 
 export type MeetingData = z.infer<typeof meetingInsertSchema>;
 export type MeetingUpdateData = z.infer<typeof meetingUpdateSchema>;

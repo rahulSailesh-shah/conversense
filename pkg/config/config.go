@@ -24,6 +24,9 @@ type AppConfig struct {
 	Server   ServerConfig
 	Auth     AuthConfig
 	Polar    PolarConfig
+	LiveKit  LiveKitConfig
+	AWS      AWSConfig
+	Gemini   GeminiConfig
 	LogLevel string
 	Env      string
 }
@@ -34,6 +37,24 @@ type AuthConfig struct {
 
 type PolarConfig struct {
 	AccessToken string
+}
+
+type LiveKitConfig struct {
+	Host      string
+	APIKey    string
+	APISecret string
+}
+
+type AWSConfig struct {
+	AccessKey string
+	SecretKey string
+	Region    string
+	Bucket    string
+}
+
+type GeminiConfig struct {
+	Model  string
+	APIKey string
 }
 
 func LoadConfig() (*AppConfig, error) {
@@ -60,6 +81,21 @@ func LoadConfig() (*AppConfig, error) {
 		},
 		Polar: PolarConfig{
 			AccessToken: os.Getenv("POLAR_ACCESS_TOKEN"),
+		},
+		LiveKit: LiveKitConfig{
+			Host:      os.Getenv("LK_HOST"),
+			APIKey:    os.Getenv("LK_API_KEY"),
+			APISecret: os.Getenv("LK_API_SECRET"),
+		},
+		AWS: AWSConfig{
+			AccessKey: os.Getenv("AWS_ACCESS_KEY"),
+			SecretKey: os.Getenv("AWS_SECRET_KEY"),
+			Region:    os.Getenv("AWS_REGION"),
+			Bucket:    os.Getenv("AWS_S3_BUCKET"),
+		},
+		Gemini: GeminiConfig{
+			Model:  os.Getenv("GEMINI_MODEL"),
+			APIKey: os.Getenv("GEMINI_API_KEY"),
 		},
 		LogLevel: "info",
 		Env:      os.Getenv("APP_ENV"),

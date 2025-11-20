@@ -1,5 +1,10 @@
 import { apiClient, ApiError } from "@/lib/api-client";
-import type { Meeting, MeetingData, MeetingUpdateData } from "./types";
+import type {
+  Meeting,
+  MeetingData,
+  MeetingUpdateData,
+  StartMeetingResponse,
+} from "./types";
 import type { PaginatedMeetingResponse } from "./types";
 import type { MeetingSearchParams } from "@/routes/_authenticated/_dashboard/meetings";
 
@@ -61,6 +66,19 @@ export const deleteMeeting = async (meetingId: string) => {
 export const getMeetingById = async (meetingId: string) => {
   const { data, error, status } = await apiClient.get<Meeting>(
     `/meetings/${meetingId}`
+  );
+
+  if (error) {
+    handleApiError(error, status);
+  }
+
+  return data;
+};
+
+export const startMeeting = async (meetingId: string) => {
+  const { data, error, status } = await apiClient.post<StartMeetingResponse>(
+    `/meetings/${meetingId}/start`,
+    {}
   );
 
   if (error) {

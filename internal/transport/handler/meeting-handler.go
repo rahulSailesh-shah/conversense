@@ -151,3 +151,33 @@ func (h *MeetingHandler) DeleteMeeting(c *gin.Context) {
 		Message: "Agent deleted successfully",
 	})
 }
+
+func (h *MeetingHandler) StartMeeting(c *gin.Context) {
+	meetingId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Message: "Invalid meeting ID",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	token, err := h.meetingService.StartMeeting(c.Request.Context(), dto.StartMeetingRequest{
+		ID:     meetingId,
+		UserID: c.MustGet("userId").(string),
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Message: "Failed to start meeting",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.SuccessResponse{
+		Message: "Meeting started successfully",
+		Data: map[string]string{
+			"token": token,
+		},
+	})
+}
