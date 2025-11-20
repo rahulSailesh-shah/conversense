@@ -234,8 +234,9 @@ func (s *meetingService) StartMeeting(ctx context.Context, request dto.StartMeet
 		session.Stop()
 		return "", fmt.Errorf("failed to update meeting: %w", err)
 	}
-	token, err := session.GenerateUserToken(request.UserID)
+	token, err := session.GenerateUserToken()
 	if err != nil {
+		session.Stop()
 		return "", fmt.Errorf("failed to generate token: %w", err)
 	}
 
@@ -276,48 +277,4 @@ func toMeetingResponse(meeting repo.Meeting) *dto.MeetingResponse {
 // TODO: triggers Inngest background post-processing
 func (s *meetingService) onMeetingEnd(meetingID string, recordingURL string, transcriptURL string) {
 	fmt.Println("Meeting ended, starting post-processing", "meetingID", meetingID)
-
-	// For now, update meeting directly
-	go func() {
-		ctx := context.Background()
-		meetingUUID, err := uuid.Parse(meetingID)
-		if err != nil {
-			fmt.Println("Failed to parse meeting ID", err, "meetingID", meetingID)
-			return
-		}
-
-		endTime := time.Now()
-		updateReq := dto.UpdateMeetingRequest{
-			ID:      meetingUUID,
-			UserID:  "", // System update, no user ID needed
-			Status:  "completed",
-			EndTime: &endTime,
-		}
-
-		if recordingURL != "" {
-			updateReq.RecordingURL = &recordingURL
-		}
-		if transcriptURL != "" {
-			updateReq.TranscriptURL = &transcriptURL
-		}
-
-		// Get the meeting first to get the user ID
-		meeting, err := s.queries.GetMeeting(ctx, repo.GetMeetingParams{
-			ID:     meetingUUID,
-			UserID: "", // We need to query without user filter
-		})
-		if err != nil {
-			fmt.Println("Failed to get meeting for post-processing", err, "meetingID", meetingID)
-			return
-		}
-
-		updateReq.UserID = meeting.UserID
-		_, err = s.UpdateMeeting(ctx, updateReq)
-		if err != nil {
-			fmt.Println("Failed to update meeting after end", err, "meetingID", meetingID)
-			return
-		}
-
-		fmt.Println("Meeting post-processing completed", "meetingID", meetingID)
-	}()
 }

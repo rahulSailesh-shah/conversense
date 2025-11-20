@@ -1,10 +1,16 @@
 package livekit
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/livekit/media-sdk"
 	"github.com/livekit/protocol/auth"
 	"github.com/livekit/protocol/livekit"
@@ -19,22 +25,33 @@ type SessionCallbacks struct {
 	OnMeetingEnd func(meetingID string, recordingURL string, transcriptURL string)
 }
 
+type SessionTranscript struct {
+	Segments []SessionTranscriptSegment
+}
+
+type SessionTranscriptSegment struct {
+	User string
+	Bot  string
+}
+
 type LiveKitSession struct {
-	meetingID     string
-	agentName     string
-	userID        string
-	room          *lksdk.Room
-	handler       *GeminiRealtimeAPIHandler
-	egressInfo    *livekit.EgressInfo
-	lkConfig      *config.LiveKitConfig
-	geminiConfig  *config.GeminiConfig
-	awsConfig     *config.AWSConfig
-	ctx           context.Context
-	cancel        context.CancelFunc
-	done          chan struct{}
-	callbacks     SessionCallbacks
-	recordingURL  string
-	transcriptURL string
+	meetingID      string
+	agentName      string
+	userID         string
+	room           *lksdk.Room
+	handler        *GeminiRealtimeAPIHandler
+	egressInfo     *livekit.EgressInfo
+	lkConfig       *config.LiveKitConfig
+	geminiConfig   *config.GeminiConfig
+	awsConfig      *config.AWSConfig
+	ctx            context.Context
+	cancel         context.CancelFunc
+	done           chan struct{}
+	callbacks      SessionCallbacks
+	recordingURL   string
+	transcriptURL  string
+	transcriptData *SessionTranscript
+	stopOnce       sync.Once
 }
 
 func NewLiveKitSession(
@@ -59,40 +76,46 @@ func NewLiveKitSession(
 		cancel:       cancel,
 		done:         make(chan struct{}),
 		callbacks:    callbacks,
+		stopOnce:     sync.Once{},
+		transcriptData: &SessionTranscript{
+			Segments: make([]SessionTranscriptSegment, 0),
+		},
 	}
 }
 
 func (s *LiveKitSession) Start() error {
-	go s.run()
+	if err := s.connectBot(); err != nil {
+		return fmt.Errorf("failed to connect bot: %w", err)
+	}
+	fmt.Println("[-] LiveKit session started successfully", "meetingID", s.meetingID)
 	return nil
 }
 
 func (s *LiveKitSession) Stop() error {
-	fmt.Println("[-] Stopping LiveKit session", "meetingID", s.meetingID)
-	s.cancel()
-
-	if s.egressInfo != nil {
-		if err := s.stopRecording(s.egressInfo.EgressId); err != nil {
-			return fmt.Errorf("failed to stop recording: %w", err)
+	var stopErr error
+	s.stopOnce.Do(func() {
+		if s.egressInfo != nil {
+			if err := s.stopRecording(s.egressInfo.EgressId); err != nil {
+				stopErr = fmt.Errorf("failed to stop recording: %w", err)
+			}
 		}
-	}
 
-	if s.room != nil {
-		s.room.Disconnect()
-	}
-	if s.handler != nil {
-		s.handler.Close()
-	}
-	close(s.done)
-	if s.callbacks.OnMeetingEnd != nil {
-		fmt.Println("[-] Meeting ended, starting post-processing", "meetingID", s.meetingID)
-		s.callbacks.OnMeetingEnd(s.meetingID, s.recordingURL, s.transcriptURL)
-	}
-
-	return nil
+		if s.room != nil {
+			s.room.Disconnect()
+		}
+		if s.handler != nil {
+			s.handler.Close()
+		}
+		close(s.done)
+		if s.callbacks.OnMeetingEnd != nil {
+			fmt.Println("[-] Meeting ended, starting post-processing", "meetingID", s.meetingID)
+			s.callbacks.OnMeetingEnd(s.meetingID, s.recordingURL, s.transcriptURL)
+		}
+	})
+	return stopErr
 }
 
-func (s *LiveKitSession) GenerateUserToken(userIdentity string) (string, error) {
+func (s *LiveKitSession) GenerateUserToken() (string, error) {
 	at := auth.NewAccessToken(s.lkConfig.APIKey, s.lkConfig.APISecret)
 	grant := &auth.VideoGrant{
 		RoomJoin: true,
@@ -108,19 +131,6 @@ func (s *LiveKitSession) GenerateUserToken(userIdentity string) (string, error) 
 	return token, nil
 }
 
-func (s *LiveKitSession) run() {
-	fmt.Println("[-] LiveKit session started, connecting bot for 1:1 meeting", "meetingID", s.meetingID)
-
-	if err := s.connectBot(); err != nil {
-		s.Stop()
-		return
-	}
-
-	<-s.ctx.Done()
-
-	fmt.Println("[-] LiveKit session ending", "meetingID", s.meetingID)
-}
-
 func (s *LiveKitSession) connectBot() error {
 	audioWriterChan := make(chan media.PCM16Sample, 100)
 	handler, err := NewGeminiRealtimeAPIHandler(&GeminiRealtimeAPIHandlerCallbacks{
@@ -131,7 +141,7 @@ func (s *LiveKitSession) connectBot() error {
 				return
 			}
 		},
-	}, s.geminiConfig)
+	}, s.geminiConfig, s.transcriptData)
 	if err != nil {
 		close(audioWriterChan)
 		return fmt.Errorf("failed to create Gemini handler: %w", err)
@@ -260,7 +270,7 @@ func (s *LiveKitSession) startRecording() (*livekit.EgressInfo, error) {
 		Layout:    "speaker",
 		AudioOnly: false,
 	}
-	outputPath := fmt.Sprintf("%s/%s.mp4", s.userID, s.meetingID)
+	outputPath := fmt.Sprintf("%s/%s/recording.mp4", s.userID, s.meetingID)
 	req.FileOutputs = []*livekit.EncodedFileOutput{
 		{
 			Filepath: outputPath,
@@ -309,6 +319,34 @@ func (s *LiveKitSession) stopRecording(egressID string) error {
 	// TODO: Get the recording URL from egress info and set s.recordingURL
 	// This would require querying the egress status to get the final S3 URL
 	s.recordingURL = fmt.Sprintf("s3://%s/recordings/%s.mp4", s.awsConfig.Bucket, s.meetingID)
+
+	if s.handler != nil && s.transcriptData != nil {
+		jsonBytes, err := json.MarshalIndent(s.handler.transcript, "", "  ")
+		if err != nil {
+			fmt.Println("Error marshaling transcript:", err)
+		} else {
+			s3Key := fmt.Sprintf("%s/%s/transcript.json", s.userID, s.meetingID)
+
+			// Build AWS config dynamically using your access keys
+			awsCfg := aws.Config{
+				Region:      s.awsConfig.Region,
+				Credentials: credentials.NewStaticCredentialsProvider(s.awsConfig.AccessKey, s.awsConfig.SecretKey, ""),
+			}
+			s3Client := s3.NewFromConfig(awsCfg)
+
+			_, err := s3Client.PutObject(context.Background(), &s3.PutObjectInput{
+				Bucket: &s.awsConfig.Bucket,
+				Key:    &s3Key,
+				Body:   bytes.NewReader(jsonBytes),
+			})
+			if err != nil {
+				fmt.Println("Failed to upload transcript:", err)
+			} else {
+				s.transcriptURL = fmt.Sprintf("s3://%s/%s", s.awsConfig.Bucket, s3Key)
+				fmt.Println("[-] Transcript uploaded to S3", "url", s.transcriptURL)
+			}
+		}
+	}
 
 	return nil
 }

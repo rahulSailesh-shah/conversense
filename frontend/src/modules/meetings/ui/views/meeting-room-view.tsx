@@ -4,7 +4,9 @@ import "@livekit/components-styles";
 import { Route } from "@/routes/_authenticated/meetings/$meetingId/room";
 import { VideoConferenceClientImpl } from "../components/video-conference";
 
-const SERVER_URL = "wss://conversense-z0ptqzuw.livekit.cloud";
+const SERVER_URL =
+  import.meta.env.VITE_LIVEKIT_SERVER_URL ||
+  "wss://conversense-z0ptqzuw.livekit.cloud";
 
 export const MeetingRoomView = () => {
   const { meetingId } = Route.useParams();

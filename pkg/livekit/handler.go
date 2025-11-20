@@ -12,18 +12,20 @@ import (
 )
 
 type GeminiRealtimeAPIHandler struct {
-	client  *genai.Client
-	session *genai.Session
-	ctx     context.Context
-	cancel  context.CancelFunc
-	cb      *GeminiRealtimeAPIHandlerCallbacks
+	client         *genai.Client
+	session        *genai.Session
+	ctx            context.Context
+	cancel         context.CancelFunc
+	cb             *GeminiRealtimeAPIHandlerCallbacks
+	transcript     *SessionTranscript
+	currentSegment SessionTranscriptSegment
 }
 
 type GeminiRealtimeAPIHandlerCallbacks struct {
 	OnAudioReceived func(audio media.PCM16Sample)
 }
 
-func NewGeminiRealtimeAPIHandler(cb *GeminiRealtimeAPIHandlerCallbacks, config *config.GeminiConfig) (*GeminiRealtimeAPIHandler, error) {
+func NewGeminiRealtimeAPIHandler(cb *GeminiRealtimeAPIHandlerCallbacks, config *config.GeminiConfig, transcript *SessionTranscript) (*GeminiRealtimeAPIHandler, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	apiKey := config.APIKey
@@ -59,11 +61,12 @@ func NewGeminiRealtimeAPIHandler(cb *GeminiRealtimeAPIHandlerCallbacks, config *
 	}
 
 	h := &GeminiRealtimeAPIHandler{
-		client:  client,
-		session: session,
-		ctx:     ctx,
-		cancel:  cancel,
-		cb:      cb,
+		client:     client,
+		session:    session,
+		ctx:        ctx,
+		cancel:     cancel,
+		cb:         cb,
+		transcript: transcript,
 	}
 
 	go h.readMessages()
@@ -108,35 +111,53 @@ func (h *GeminiRealtimeAPIHandler) readMessages() {
 }
 
 func (h *GeminiRealtimeAPIHandler) handleMessage(response *genai.LiveServerMessage) {
+	fmt.Print("[---] Received message [---]")
+
 	if response.ServerContent == nil {
 		return
 	}
 
-	_, err := json.MarshalIndent(response.ServerContent, "", "  ")
-	if err != nil {
-		fmt.Println("Error marshalling model response:", err)
-		return
+	// Capture output transcription from the bot
+	if response.ServerContent.OutputTranscription != nil {
+		h.currentSegment.Bot += " " + response.ServerContent.OutputTranscription.Text
+		fmt.Println("[---] Output transcription [---]", response.ServerContent.OutputTranscription.Text)
 	}
 
-	// fmt.Println("Model Response:", string(modelResponse))
+	// Capture input transcription from the user
+	if response.ServerContent.InputTranscription != nil {
+		h.currentSegment.User += " " + response.ServerContent.InputTranscription.Text
+		fmt.Println("[---] Input transcription [---]", response.ServerContent.InputTranscription.Text)
+	}
 
+	// Handle audio from the bot
 	if response.ServerContent.ModelTurn != nil {
 		for _, part := range response.ServerContent.ModelTurn.Parts {
 			if part.InlineData != nil && part.InlineData.Data != nil {
 				audioBytes := part.InlineData.Data
-				// Convert bytes to PCM16
 				audioPCM16 := make(media.PCM16Sample, len(audioBytes)/2)
 				for i := 0; i < len(audioBytes); i += 2 {
 					audioPCM16[i/2] = int16(binary.LittleEndian.Uint16(audioBytes[i : i+2]))
 				}
-
 				h.cb.OnAudioReceived(audioPCM16)
 			}
 		}
 	}
 
+	// On turn completion, store the segment and reset for next turn
 	if response.ServerContent.TurnComplete {
 		fmt.Println("✅ Turn complete - ready for next input")
+		h.transcript.Segments = append(h.transcript.Segments, h.currentSegment)
+
+		// Optional: log full transcript
+		jsonData, err := json.MarshalIndent(h.transcript, "", "  ")
+		if err != nil {
+			fmt.Println("Error marshaling transcript:", err)
+		} else {
+			fmt.Println(string(jsonData))
+		}
+
+		// Reset current segment for next turn
+		h.currentSegment = SessionTranscriptSegment{}
 	}
 }
 
