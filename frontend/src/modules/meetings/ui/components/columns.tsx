@@ -5,15 +5,11 @@ import {
   ClockIcon,
   PlayCircleIcon,
   CheckCircleIcon,
-  XCircleIcon,
   LoaderIcon,
   CalendarClockIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Meeting } from "../../types";
-
-// This type is used to define the shape of our data.
-// You can use a Zod schema here if you want.
 
 const getStatusConfig = (
   status: Meeting["status"]
@@ -41,12 +37,6 @@ const getStatusConfig = (
         label: "Completed",
         className: "bg-gray-50 text-gray-700 border-gray-200",
       };
-    case "cancelled":
-      return {
-        icon: <XCircleIcon className="size-4" />,
-        label: "Cancelled",
-        className: "bg-red-50 text-red-700 border-red-200",
-      };
     case "processing":
       return {
         icon: <LoaderIcon className="size-4 animate-spin" />,
@@ -57,6 +47,7 @@ const getStatusConfig = (
 };
 
 const calculateDuration = (meeting: Meeting): string => {
+  console.log("Meeting", meeting);
   if (meeting.startTime && meeting.endTime) {
     const start = new Date(meeting.startTime);
     const end = new Date(meeting.endTime);
@@ -64,6 +55,10 @@ const calculateDuration = (meeting: Meeting): string => {
     const minutes = Math.floor(durationMs / 60000);
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
+
+    if (minutes === 0) {
+      return "Less than a minute";
+    }
 
     if (hours > 0) {
       return `${hours}h ${remainingMinutes}m`;
@@ -79,8 +74,6 @@ const calculateDuration = (meeting: Meeting): string => {
       return "In progress";
     case "processing":
       return "Processing...";
-    case "cancelled":
-      return "—";
     case "completed":
       return "No data";
   }

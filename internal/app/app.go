@@ -8,12 +8,14 @@ import (
 	"github.com/rahulSailesh-shah/converSense/internal/service"
 	"github.com/rahulSailesh-shah/converSense/pkg/config"
 	"github.com/rahulSailesh-shah/converSense/pkg/database"
+	"github.com/rahulSailesh-shah/converSense/pkg/inngest"
 )
 
 type App struct {
 	Config  *config.AppConfig
 	DB      database.DB
 	Service *service.Service
+	Inngest *inngest.Inngest
 }
 
 func NewApp(ctx context.Context, cfg *config.AppConfig) (*App, error) {
@@ -30,12 +32,16 @@ func NewApp(ctx context.Context, cfg *config.AppConfig) (*App, error) {
 	}
 
 	queries := repo.New(dbInstance)
-
-	services := service.NewService(dbInstance, queries, cfg)
+	inngest, err := inngest.NewInngest(&cfg.AWS, &cfg.Gemini, queries)
+	if err != nil {
+		return nil, err
+	}
+	services := service.NewService(dbInstance, queries, inngest, cfg)
 
 	return &App{
 		Config:  cfg,
 		DB:      db,
 		Service: services,
+		Inngest: inngest,
 	}, nil
 }

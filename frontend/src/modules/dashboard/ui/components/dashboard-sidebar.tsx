@@ -2,7 +2,6 @@ import { Separator } from "@/components/ui/separator";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
@@ -12,8 +11,7 @@ import {
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "@tanstack/react-router";
-import { BotIcon, StarIcon, VideoIcon } from "lucide-react";
-import { DashboardUserButton } from "./dashboard-user-button";
+import { BotIcon, VideoIcon } from "lucide-react";
 
 const firstSection = [
   {
@@ -25,14 +23,6 @@ const firstSection = [
     icon: BotIcon,
     label: "Agents",
     href: "/agents",
-  },
-];
-
-const secondSection = [
-  {
-    icon: StarIcon,
-    label: "Upgrade",
-    href: "/upgrade",
   },
 ];
 
@@ -81,40 +71,7 @@ export const DashboardSidebar = () => {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        <div className="px-4 py-2">
-          <Separator className="opacity-10 text-[#5D6B68]" />
-        </div>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {secondSection.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    asChild
-                    className={cn(
-                      "h-10 hover:bg-linear-to-r/oklch border border-transparent hover:border=[#5D6B68]/10 from-sidebar-accent from-5% via-30% via-sidebar/50 to-sidebar/50",
-                      pathname === item.href
-                        ? "bg-linear-to-r/oklch border-[#5D6B68]/10"
-                        : "bg-transparent"
-                    )}
-                    isActive={pathname === item.href}
-                  >
-                    <Link to={item.href} className="flex items-center gap-2">
-                      <item.icon className="size-5" />
-                      <span className="text-sm font-medium tracking-light">
-                        {item.label}
-                      </span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="text-white">
-        <DashboardUserButton />
-      </SidebarFooter>
     </Sidebar>
   );
 };

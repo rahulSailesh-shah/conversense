@@ -48,6 +48,12 @@ type DeleteMeetingRequest struct {
 	UserID string    `json:"-"`
 }
 
+type GetPreSignedRecordingURLRequest struct {
+	MeetingID uuid.UUID `json:"-" `
+	UserID    string    `json:"-" `
+	FileType  string    `json:"fileType" binding:"required,oneof=recording transcript"` // "recording" or "transcript"
+}
+
 // Responses
 
 type MeetingResponse struct {

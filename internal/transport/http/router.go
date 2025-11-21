@@ -31,6 +31,9 @@ func RegisterRoutes(r *gin.Engine, authKeys jwk.Set, app *app.App) {
 	protected := r.Group("")
 	protected.Use(middleware.AuthMiddleware(authKeys))
 
+	// Inngest Endpoint
+	r.Any("/api/inngest", app.Inngest.Handler())
+
 	// Agent routes
 	agentRoutes := protected.Group("/agents")
 	agentHandler := handler.NewAgentHandler(app.Service.Agent)
@@ -42,6 +45,11 @@ func RegisterRoutes(r *gin.Engine, authKeys jwk.Set, app *app.App) {
 		agentRoutes.DELETE("/:id", agentHandler.DeleteAgent)
 	}
 
+	// Chat routes
+	geminiHandler := handler.NewGeminiHandler(app.Service.Gemini)
+	protected.POST("/chat/:meetingId", geminiHandler.Chat)
+	protected.GET("/chat/:meetingId", geminiHandler.GetHistory)
+
 	// Meeting routes
 	meetingRoutes := protected.Group("/meetings")
 	meetingHandler := handler.NewMeetingHandler(app.Service.Meeting)
@@ -52,5 +60,6 @@ func RegisterRoutes(r *gin.Engine, authKeys jwk.Set, app *app.App) {
 		meetingRoutes.GET("/:id", meetingHandler.GetMeeting)
 		meetingRoutes.DELETE("/:id", meetingHandler.DeleteMeeting)
 		meetingRoutes.POST("/:id/start", meetingHandler.StartMeeting)
+		meetingRoutes.POST("/:id/recording-url", meetingHandler.GetPreSignedRecordingURL)
 	}
 }

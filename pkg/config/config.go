@@ -53,8 +53,9 @@ type AWSConfig struct {
 }
 
 type GeminiConfig struct {
-	Model  string
-	APIKey string
+	RealtimeModel string
+	ChatModel     string
+	APIKey        string
 }
 
 func LoadConfig() (*AppConfig, error) {
@@ -94,8 +95,9 @@ func LoadConfig() (*AppConfig, error) {
 			Bucket:    os.Getenv("AWS_S3_BUCKET"),
 		},
 		Gemini: GeminiConfig{
-			Model:  os.Getenv("GEMINI_MODEL"),
-			APIKey: os.Getenv("GEMINI_API_KEY"),
+			RealtimeModel: os.Getenv("GEMINI_REALTIME_MODEL"),
+			ChatModel:     os.Getenv("GEMINI_CHAT_MODEL"),
+			APIKey:        os.Getenv("GEMINI_API_KEY"),
 		},
 		LogLevel: "info",
 		Env:      os.Getenv("APP_ENV"),

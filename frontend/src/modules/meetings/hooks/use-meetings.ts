@@ -9,12 +9,14 @@ import {
   deleteMeeting,
   fetchMeetings,
   getMeetingById,
+  getPreSignedRecordingURL,
   startMeeting,
   updateMeeting,
 } from "../api";
 import type { MeetingData, MeetingUpdateData } from "../types";
 import { useSearch } from "@tanstack/react-router";
 
+// Query hooks
 export const useQueryMeetings = () => {
   const search = useSearch({
     from: "/_authenticated/_dashboard/meetings/",
@@ -34,6 +36,17 @@ export const useQueryMeeting = (meetingId: string) => {
   });
 };
 
+export const useQueryMeetingRecording = (
+  meetingId: string,
+  fileType: "recording" | "transcript"
+) => {
+  return useQuery({
+    queryKey: ["meeting-recording", meetingId],
+    queryFn: () => getPreSignedRecordingURL(meetingId, fileType),
+  });
+};
+
+// Mutation hooks
 export const useMutationCreateMeeting = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -74,9 +87,12 @@ export const useMutationDeleteMeeting = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (meetingId: string) => deleteMeeting(meetingId),
-    onSuccess: () => {
+    onSuccess: (_, meetingId) => {
       queryClient.invalidateQueries({
         queryKey: ["meetings"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["meeting-recording", meetingId],
       });
     },
     onError: () => {},
@@ -93,6 +109,9 @@ export const useMutationStartMeeting = () => {
       });
       queryClient.invalidateQueries({
         queryKey: ["meeting", meetingId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["meeting-recording", meetingId],
       });
     },
     onError: () => {},

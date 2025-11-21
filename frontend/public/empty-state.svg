@@ -2,17 +2,17 @@
 <circle cx="94.5" cy="67.5" r="59.5" fill="#F5F6F6"/>
 <g filter="url(#filter0_d)">
   <rect x="22" y="26" width="145" height="72" rx="6" fill="white"/>
-  <rect x="22.25" y="26.25" width="144.5" height="71.5" rx="5.75" stroke="#E9F7F0" stroke-width="0.5"/>
+  <rect x="22.25" y="26.25" width="144.5" height="71.5" rx="5.75" stroke="#F0F4FF" stroke-width="0.5"/>
 </g>
 <g filter="url(#filter1_dd)">
   <rect x="12" y="37" width="166" height="50" rx="8" fill="white"/>
-  <rect x="12.25" y="37.25" width="165.5" height="49.5" rx="7.75" stroke="#E9F7F0" stroke-width="0.5"/>
+  <rect x="12.25" y="37.25" width="165.5" height="49.5" rx="7.75" stroke="#F0F4FF" stroke-width="0.5"/>
 </g>
 <rect x="20" y="45" width="34" height="34" rx="6" fill="#F5F6F6"/>
 
-<rect x="63" y="49" width="72" height="4" rx="2" fill="#17A34A"/>
-<rect x="63" y="61" width="64" height="4" rx="2" fill="#D5F2E0"/>
-<rect x="63" y="73" width="94" height="4" rx="2" fill="#E9F7F0"/>
+<rect x="63" y="49" width="72" height="4" rx="2" fill="#00203f"/>
+<rect x="63" y="61" width="64" height="4" rx="2" fill="#E0E7FF"/>
+<rect x="63" y="73" width="94" height="4" rx="2" fill="#F0F4FF"/>
 
 <defs>
   <filter id="filter0_d" x="20.125" y="25.0625" width="148.75" height="75.75" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">

@@ -40,14 +40,7 @@ export const UpcomingMeeting = ({ meeting }: UpcomingMeetingProps) => {
           description="Once you start this meeting, a summary will appear here"
         />
         <div className="flex items-center gap-x-3">
-          <Button variant="outline" className="gap-x-2">
-            <BanIcon className="size-4" />
-            Cancel meeting
-          </Button>
-          <Button
-            className="gap-x-2 bg-green-600 hover:bg-green-700"
-            onClick={handleStartMeeting}
-          >
+          <Button onClick={handleStartMeeting}>
             <VideoIcon className="size-4" />
             Start meeting
           </Button>

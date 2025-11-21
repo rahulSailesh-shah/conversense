@@ -181,3 +181,36 @@ func (h *MeetingHandler) StartMeeting(c *gin.Context) {
 		},
 	})
 }
+
+func (h *MeetingHandler) GetPreSignedRecordingURL(c *gin.Context) {
+	meetingId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Message: "Invalid meeting ID",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	var req dto.GetPreSignedRecordingURLRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	req.MeetingID = meetingId
+	req.UserID = c.MustGet("userId").(string)
+	url, err := h.meetingService.GetPreSignedRecordingURL(c.Request.Context(), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Message: "Failed to get pre-signed recording URL",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.SuccessResponse{
+		Message: "Pre-signed recording URL retrieved successfully",
+		Data:    url,
+	})
+}

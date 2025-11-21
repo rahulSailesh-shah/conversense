@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Agent struct {
@@ -32,4 +33,23 @@ type Meeting struct {
 	Summary       *string    `db:"summary" json:"summary"`
 	CreatedAt     time.Time  `db:"created_at" json:"createdAt"`
 	UpdatedAt     time.Time  `db:"updated_at" json:"updatedAt"`
+}
+
+type MeetingChatMessages struct {
+	ID        uuid.UUID          `db:"id" json:"id"`
+	MeetingID uuid.UUID          `db:"meeting_id" json:"meetingId"`
+	UserID    string             `db:"user_id" json:"userId"`
+	Role      string             `db:"role" json:"role"`
+	Content   string             `db:"content" json:"content"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"createdAt"`
+}
+
+type User struct {
+	ID            string    `db:"id" json:"id"`
+	Name          string    `db:"name" json:"name"`
+	Email         string    `db:"email" json:"email"`
+	EmailVerified bool      `db:"email_verified" json:"emailVerified"`
+	Image         *string   `db:"image" json:"image"`
+	CreatedAt     time.Time `db:"created_at" json:"createdAt"`
+	UpdatedAt     time.Time `db:"updated_at" json:"updatedAt"`
 }

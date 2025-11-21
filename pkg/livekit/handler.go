@@ -5,28 +5,51 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/livekit/media-sdk"
+	"github.com/rahulSailesh-shah/converSense/internal/db/repo"
 	"github.com/rahulSailesh-shah/converSense/pkg/config"
 	"google.golang.org/genai"
 )
 
 type GeminiRealtimeAPIHandler struct {
-	client         *genai.Client
-	session        *genai.Session
-	ctx            context.Context
-	cancel         context.CancelFunc
-	cb             *GeminiRealtimeAPIHandlerCallbacks
-	transcript     *SessionTranscript
-	currentSegment SessionTranscriptSegment
+	client             *genai.Client
+	session            *genai.Session
+	ctx                context.Context
+	cancel             context.CancelFunc
+	cb                 *GeminiRealtimeAPIHandlerCallbacks
+	transcript         *SessionTranscript
+	userDetails        *repo.User
+	meetingDetails     *repo.GetMeetingRow
+	currentUserContent string // Accumulate user chunks
+	currentBotContent  string // Accumulate bot chunks
+	currentTurnStart   time.Time
 }
 
 type GeminiRealtimeAPIHandlerCallbacks struct {
 	OnAudioReceived func(audio media.PCM16Sample)
 }
 
-func NewGeminiRealtimeAPIHandler(cb *GeminiRealtimeAPIHandlerCallbacks, config *config.GeminiConfig, transcript *SessionTranscript) (*GeminiRealtimeAPIHandler, error) {
-	ctx, cancel := context.WithCancel(context.Background())
+type SessionTranscript struct {
+	Segments []SessionTranscriptSegment `json:"segments"`
+}
+
+type SessionTranscriptSegment struct {
+	Role      string    `json:"role"`      // "user" or "ai"
+	Name      string    `json:"name"`      // Speaker's name
+	Content   string    `json:"content"`   // Transcript text
+	Timestamp time.Time `json:"timestamp"` // When the segment was captured
+}
+
+func NewGeminiRealtimeAPIHandler(parentCtx context.Context,
+	config *config.GeminiConfig,
+	userDetails *repo.User,
+	meetingDetails *repo.GetMeetingRow,
+	cb *GeminiRealtimeAPIHandlerCallbacks,
+) (*GeminiRealtimeAPIHandler, error) {
+	ctx, cancel := context.WithCancel(parentCtx)
 
 	apiKey := config.APIKey
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{
@@ -37,14 +60,14 @@ func NewGeminiRealtimeAPIHandler(cb *GeminiRealtimeAPIHandlerCallbacks, config *
 		return nil, fmt.Errorf("failed to create Gemini client: %w", err)
 	}
 
-	model := config.Model
+	model := config.RealtimeModel
 	if model == "" {
 		model = "gemini-2.5-flash-native-audio-preview-09-2025"
 	}
-
 	thinkingBudget := int32(0)
+	systemInstructions := meetingDetails.AgentInstructions
 	session, err := client.Live.Connect(ctx, model, &genai.LiveConnectConfig{
-		SystemInstruction:        genai.NewContentFromText("You are a helpful assistant and answer in a friendly tone.", genai.RoleUser),
+		SystemInstruction:        genai.NewContentFromText(systemInstructions, genai.RoleUser),
 		ResponseModalities:       []genai.Modality{genai.ModalityAudio},
 		InputAudioTranscription:  &genai.AudioTranscriptionConfig{},
 		OutputAudioTranscription: &genai.AudioTranscriptionConfig{},
@@ -61,12 +84,17 @@ func NewGeminiRealtimeAPIHandler(cb *GeminiRealtimeAPIHandlerCallbacks, config *
 	}
 
 	h := &GeminiRealtimeAPIHandler{
-		client:     client,
-		session:    session,
-		ctx:        ctx,
-		cancel:     cancel,
-		cb:         cb,
-		transcript: transcript,
+		client:         client,
+		session:        session,
+		ctx:            ctx,
+		cancel:         cancel,
+		cb:             cb,
+		userDetails:    userDetails,
+		meetingDetails: meetingDetails,
+		transcript: &SessionTranscript{
+			Segments: make([]SessionTranscriptSegment, 0),
+		},
+		currentTurnStart: time.Now(),
 	}
 
 	go h.readMessages()
@@ -94,39 +122,40 @@ func (h *GeminiRealtimeAPIHandler) SendAudioChunk(sample media.PCM16Sample) erro
 
 func (h *GeminiRealtimeAPIHandler) readMessages() {
 	for {
-		select {
-		case <-h.ctx.Done():
-			return
-		default:
-		}
-
 		response, err := h.session.Receive()
 		if err != nil {
-			fmt.Println("Error receiving message:", err)
+			select {
+			case <-h.ctx.Done():
+				fmt.Println("[-] Session closed")
+				return
+			default:
+				fmt.Println("[-] Error receiving message:", err)
+			}
 			return
 		}
-
 		h.handleMessage(response)
 	}
 }
 
 func (h *GeminiRealtimeAPIHandler) handleMessage(response *genai.LiveServerMessage) {
-	fmt.Print("[---] Received message [---]")
-
 	if response.ServerContent == nil {
 		return
 	}
 
-	// Capture output transcription from the bot
+	// Accumulate output transcription chunks from the bot
 	if response.ServerContent.OutputTranscription != nil {
-		h.currentSegment.Bot += " " + response.ServerContent.OutputTranscription.Text
-		fmt.Println("[---] Output transcription [---]", response.ServerContent.OutputTranscription.Text)
+		text := response.ServerContent.OutputTranscription.Text
+		if text != "" {
+			h.currentBotContent += " " + text
+		}
 	}
 
-	// Capture input transcription from the user
+	// Accumulate input transcription chunks from the user
 	if response.ServerContent.InputTranscription != nil {
-		h.currentSegment.User += " " + response.ServerContent.InputTranscription.Text
-		fmt.Println("[---] Input transcription [---]", response.ServerContent.InputTranscription.Text)
+		text := response.ServerContent.InputTranscription.Text
+		if text != "" {
+			h.currentUserContent += " " + text
+		}
 	}
 
 	// Handle audio from the bot
@@ -143,22 +172,45 @@ func (h *GeminiRealtimeAPIHandler) handleMessage(response *genai.LiveServerMessa
 		}
 	}
 
-	// On turn completion, store the segment and reset for next turn
+	// On turn completion, create segments from accumulated content
 	if response.ServerContent.TurnComplete {
 		fmt.Println("✅ Turn complete - ready for next input")
-		h.transcript.Segments = append(h.transcript.Segments, h.currentSegment)
+		if h.currentUserContent != "" {
+			userSegment := SessionTranscriptSegment{
+				Role:      "user",
+				Name:      h.userDetails.Name,
+				Content:   strings.TrimSpace(h.currentUserContent),
+				Timestamp: h.currentTurnStart,
+			}
+			h.transcript.Segments = append(h.transcript.Segments, userSegment)
+		}
 
-		// Optional: log full transcript
+		if h.currentBotContent != "" {
+			botSegment := SessionTranscriptSegment{
+				Role:      "ai",
+				Name:      h.meetingDetails.AgentName,
+				Content:   strings.TrimSpace(h.currentBotContent),
+				Timestamp: time.Now(),
+			}
+			h.transcript.Segments = append(h.transcript.Segments, botSegment)
+		}
+
+		h.currentUserContent = ""
+		h.currentBotContent = ""
+		h.currentTurnStart = time.Now()
+
 		jsonData, err := json.MarshalIndent(h.transcript, "", "  ")
 		if err != nil {
 			fmt.Println("Error marshaling transcript:", err)
 		} else {
+			fmt.Println("\n=== Full Transcript ===")
 			fmt.Println(string(jsonData))
 		}
-
-		// Reset current segment for next turn
-		h.currentSegment = SessionTranscriptSegment{}
 	}
+}
+
+func (h *GeminiRealtimeAPIHandler) GetTranscript() *SessionTranscript {
+	return h.transcript
 }
 
 func (h *GeminiRealtimeAPIHandler) Close() error {

@@ -1,29 +1,31 @@
 import { ResponsiveDialog } from "@/components/responsive-dialog";
-import { AgentForm } from "./meeting-form";
+import { MeetingForm } from "./meeting-form";
 import type { Meeting } from "../../types";
 
-interface EditAgentDialogProps {
+interface EditMeetingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialValues: Meeting;
 }
 
-export const EditAgentDialog = ({
+export const EditMeetingDialog = ({
   open,
   onOpenChange,
   initialValues,
-}: EditAgentDialogProps) => {
+}: EditMeetingDialogProps) => {
   return (
     <ResponsiveDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Edit Agent"
-      description="Edit agent."
+      title="Edit Meeting"
+      description="Update meeting details."
     >
-      <AgentForm
-        onSuccess={() => onOpenChange(false)}
-        onCancel={() => onOpenChange(false)}
+      <MeetingForm
         initialValues={initialValues}
+        onSuccess={() => {
+          onOpenChange(false);
+        }}
+        onCancel={() => onOpenChange(false)}
       />
     </ResponsiveDialog>
   );

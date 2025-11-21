@@ -9,7 +9,7 @@ export interface Meeting {
   updatedAt: string;
   startTime: string | null;
   endTime: string | null;
-  status: "upcoming" | "active" | "completed" | "cancelled" | "processing";
+  status: "upcoming" | "active" | "completed" | "processing";
   transcriptUrl: string | null;
   recordingUrl: string | null;
   summary: string | null;

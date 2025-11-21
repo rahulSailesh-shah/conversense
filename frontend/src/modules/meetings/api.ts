@@ -87,3 +87,19 @@ export const startMeeting = async (meetingId: string) => {
 
   return data;
 };
+
+export const getPreSignedRecordingURL = async (
+  meetingId: string,
+  fileType: "recording" | "transcript"
+) => {
+  const { data, error, status } = await apiClient.post<string>(
+    `/meetings/${meetingId}/recording-url`,
+    { fileType }
+  );
+
+  if (error) {
+    handleApiError(error, status);
+  }
+
+  return data;
+};
