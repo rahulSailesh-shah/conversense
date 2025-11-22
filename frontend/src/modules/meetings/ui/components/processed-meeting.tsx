@@ -110,7 +110,7 @@ export const ProcessedMeeting = ({ meeting }: ProcessedMeetingProps) => {
 
         {activeTab === "ask-ai" && (
           <Card className="h-[calc(100vh-300px)] flex flex-col overflow-hidden">
-            <CardContent className="flex-1 p-6 min-h-0">
+            <CardContent className="flex-1 min-h-0">
               <MeetingChat meeting={meeting} />
             </CardContent>
           </Card>

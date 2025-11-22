@@ -1,4 +1,4 @@
-import { BanIcon, VideoIcon } from "lucide-react";
+import { VideoIcon } from "lucide-react";
 import type { Meeting } from "../../types";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";

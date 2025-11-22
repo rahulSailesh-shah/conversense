@@ -151,31 +151,25 @@ export const MeetingChat = ({ meeting }: MeetingChatProps) => {
         const chunk = decoder.decode(value, { stream: true });
         buffer += chunk;
 
-        const lines = buffer.split("\n\n");
+        // Process complete lines (split by newline)
+        const lines = buffer.split("\n");
+        // Keep the last incomplete line in the buffer
         buffer = lines.pop() || "";
 
-        for (const block of lines) {
-          const blockLines = block.split("\n");
-          for (const line of blockLines) {
-            const isData =
-              line.startsWith("data:") || line.trimStart().startsWith("data:");
+        for (const line of lines) {
+          // Check if this line starts with "data:"
+          if (line.startsWith("data:")) {
+            // Extract everything after "data:" - preserve all spacing as-is
+            const content = line.substring(5);
 
-            if (isData) {
-              const index = line.indexOf("data:");
-              let data = line.slice(index + 5);
-
-              if (data.startsWith(" ")) {
-                data = data.slice(1);
-              }
-
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === aiMessageId
-                    ? { ...msg, content: msg.content + data }
-                    : msg
-                )
-              );
-            }
+            // Append the content exactly as received from server
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === aiMessageId
+                  ? { ...msg, content: msg.content + content }
+                  : msg
+              )
+            );
           }
         }
       }
@@ -205,7 +199,7 @@ export const MeetingChat = ({ meeting }: MeetingChatProps) => {
   };
 
   return (
-    <div className="flex flex-col h-full ">
+    <div className="flex flex-col h-full w-[70%] mx-auto">
       <div className="flex flex-col overflow-y-auto gap-6 py-6 px-4">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-[400px] text-center space-y-6 opacity-60">
@@ -241,14 +235,14 @@ export const MeetingChat = ({ meeting }: MeetingChatProps) => {
 
               <div
                 className={cn(
-                  "relative px-5 py-3.5 text-sm max-w-[85%] shadow-sm",
+                  "relative px-5 py-3.5 text-sm max-w-[60%] shadow-sm",
                   message.role === "user"
                     ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm"
-                    : "bg-card text-card-foreground rounded-2xl rounded-tl-sm border border-border/40"
+                    : "bg-muted text-card-foreground rounded-2xl rounded-tl-sm border border-border/40 "
                 )}
               >
                 {message.role === "ai" ? (
-                  <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:p-0 prose-pre:bg-transparent">
+                  <div className=" prose prose-sm dark:prose-invert max-w-[85%] prose-p:leading-relaxed prose-pre:p-0 prose-pre:bg-transparent">
                     <ReactMarkdown components={chatMarkdownComponents}>
                       {message.content}
                     </ReactMarkdown>

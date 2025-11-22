@@ -213,3 +213,37 @@ body {
 .react-flow__node.selected #base-node {
   @apply ring-3 ring-muted-foreground/25 shadow-lg;
 }
+
+/* LiveKit VideoConference full-screen override */
+.lk-video-conference {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.lk-grid-layout {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.lk-focus-layout {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Ensure participant tiles fill available space */
+.lk-participant-tile {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.lk-video-conference-inner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.lk-grid-layout-wrapper,
+.lk-focus-layout-wrapper {
+  flex-grow: 1;
+  height: 100%;
+}

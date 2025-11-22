@@ -1,98 +1,138 @@
-"use client";
-
+import type { TrackReferenceOrPlaceholder } from "@livekit/components-core";
 import {
-  formatChatMessageLinks,
-  RoomContext,
-  VideoConference,
+  isEqualTrackRef,
+  isTrackReference,
+  isWeb,
+  log,
+} from "@livekit/components-core";
+import { RoomEvent, Track } from "livekit-client";
+import * as React from "react";
+import {
+  CarouselLayout,
+  ConnectionStateToast,
+  FocusLayout,
+  FocusLayoutContainer,
+  GridLayout,
+  LayoutContextProvider,
+  ParticipantTile,
+  RoomAudioRenderer,
+  useCreateLayoutContext,
+  usePinnedTracks,
+  useTracks,
+  ControlBar,
 } from "@livekit/components-react";
-import {
-  ExternalE2EEKeyProvider,
-  Room,
-  type RoomConnectOptions,
-  type RoomOptions,
-  VideoPresets,
-  type VideoCodec,
-} from "livekit-client";
-import { useEffect, useMemo, useState } from "react";
-import { KeyboardShortcuts } from "../../../../lib/KeyboardShortcuts";
-import { SettingsMenu } from "../../../../lib/SettingsMenu";
-import { useSetupE2EE } from "../../../../lib/useSetupE2EE";
-import { useLowCPUOptimizer } from "../../../../lib/usePerfomanceOptimiser";
 
-export function VideoConferenceClientImpl(props: {
-  liveKitUrl: string;
-  token: string;
-  codec: VideoCodec | undefined;
-}) {
-  const keyProvider = new ExternalE2EEKeyProvider();
-  const { worker, e2eePassphrase } = useSetupE2EE();
-  const e2eeEnabled = !!(e2eePassphrase && worker);
+/**
+ * @public
+ */
+export interface VideoConferenceProps
+  extends React.HTMLAttributes<HTMLDivElement> {}
 
-  const [e2eeSetupComplete, setE2eeSetupComplete] = useState(false);
+export const VideoConference = ({ ...props }: VideoConferenceProps) => {
+  const lastAutoFocusedScreenShareTrack =
+    React.useRef<TrackReferenceOrPlaceholder | null>(null);
 
-  const roomOptions = useMemo((): RoomOptions => {
-    return {
-      publishDefaults: {
-        videoSimulcastLayers: [VideoPresets.h540, VideoPresets.h216],
-        red: !e2eeEnabled,
-        videoCodec: props.codec,
-      },
-      adaptiveStream: { pixelDensity: "screen" },
-      dynacast: true,
-      e2ee: e2eeEnabled
-        ? {
-            keyProvider,
-            worker,
-          }
-        : undefined,
-      singlePeerConnection: true,
-    };
-  }, [e2eeEnabled, props.codec, keyProvider, worker]);
+  const tracks = useTracks(
+    [
+      { source: Track.Source.Camera, withPlaceholder: true },
+      { source: Track.Source.ScreenShare, withPlaceholder: false },
+    ],
+    { updateOnlyOn: [RoomEvent.ActiveSpeakersChanged], onlySubscribed: false }
+  );
 
-  const room = useMemo(() => new Room(roomOptions), [roomOptions]);
+  const layoutContext = useCreateLayoutContext();
 
-  const connectOptions = useMemo((): RoomConnectOptions => {
-    return {
-      autoSubscribe: true,
-    };
-  }, []);
+  const screenShareTracks = tracks
+    .filter(isTrackReference)
+    .filter((track) => track.publication.source === Track.Source.ScreenShare);
 
-  useEffect(() => {
-    if (e2eeEnabled) {
-      keyProvider.setKey(e2eePassphrase).then(() => {
-        room.setE2EEEnabled(true).then(() => {
-          setE2eeSetupComplete(true);
-        });
+  const focusTrack = usePinnedTracks(layoutContext)?.[0];
+  const carouselTracks = tracks.filter(
+    (track) => !isEqualTrackRef(track, focusTrack)
+  );
+
+  React.useEffect(() => {
+    // If screen share tracks are published, and no pin is set explicitly, auto set the screen share.
+    if (
+      screenShareTracks.some((track) => track.publication.isSubscribed) &&
+      lastAutoFocusedScreenShareTrack.current === null
+    ) {
+      log.debug("Auto set screen share focus:", {
+        newScreenShareTrack: screenShareTracks[0],
       });
-    } else {
-      setE2eeSetupComplete(true);
-    }
-  }, [e2eeEnabled, e2eePassphrase, keyProvider, room, setE2eeSetupComplete]);
-
-  useEffect(() => {
-    if (e2eeSetupComplete) {
-      room
-        .connect(props.liveKitUrl, props.token, connectOptions)
-        .catch((error) => {
-          console.error(error);
-        });
-      room.localParticipant.enableCameraAndMicrophone().catch((error) => {
-        console.error(error);
+      layoutContext.pin.dispatch?.({
+        msg: "set_pin",
+        trackReference: screenShareTracks[0],
       });
+      lastAutoFocusedScreenShareTrack.current = screenShareTracks[0];
+    } else if (
+      lastAutoFocusedScreenShareTrack.current &&
+      !screenShareTracks.some(
+        (track) =>
+          track.publication.trackSid ===
+          lastAutoFocusedScreenShareTrack.current?.publication?.trackSid
+      )
+    ) {
+      log.debug("Auto clearing screen share focus.");
+      layoutContext.pin.dispatch?.({ msg: "clear_pin" });
+      lastAutoFocusedScreenShareTrack.current = null;
     }
-  }, [room, props.liveKitUrl, props.token, connectOptions, e2eeSetupComplete]);
-
-  useLowCPUOptimizer(room);
+    if (focusTrack && !isTrackReference(focusTrack)) {
+      const updatedFocusTrack = tracks.find(
+        (tr) =>
+          tr.participant.identity === focusTrack.participant.identity &&
+          tr.source === focusTrack.source
+      );
+      if (
+        updatedFocusTrack !== focusTrack &&
+        isTrackReference(updatedFocusTrack)
+      ) {
+        layoutContext.pin.dispatch?.({
+          msg: "set_pin",
+          trackReference: updatedFocusTrack,
+        });
+      }
+    }
+  }, [
+    screenShareTracks
+      .map(
+        (ref) => `${ref.publication.trackSid}_${ref.publication.isSubscribed}`
+      )
+      .join(),
+    focusTrack?.publication?.trackSid,
+    tracks,
+  ]);
 
   return (
-    <div className="lk-room-container">
-      <RoomContext.Provider value={room}>
-        <KeyboardShortcuts />
-        <VideoConference
-          chatMessageFormatter={formatChatMessageLinks}
-          SettingsComponent={SettingsMenu}
-        />
-      </RoomContext.Provider>
+    <div className="h-screen w-screen" {...props}>
+      {isWeb() && (
+        <LayoutContextProvider value={layoutContext}>
+          <div className="lk-video-conference-inner h-full w-full flex flex-col">
+            {!focusTrack ? (
+              <div className="lk-grid-layout-wrapper flex-1 min-h-0">
+                <GridLayout tracks={tracks}>
+                  <ParticipantTile />
+                </GridLayout>
+              </div>
+            ) : (
+              <div className="lk-focus-layout-wrapper flex-1 min-h-0">
+                <FocusLayoutContainer>
+                  <CarouselLayout tracks={carouselTracks}>
+                    <ParticipantTile />
+                  </CarouselLayout>
+                  {focusTrack && <FocusLayout trackRef={focusTrack} />}
+                </FocusLayoutContainer>
+              </div>
+            )}
+            <ControlBar
+              controls={{ chat: false, settings: false }}
+              saveUserChoices={true}
+            />
+          </div>
+        </LayoutContextProvider>
+      )}
+      <RoomAudioRenderer />
+      <ConnectionStateToast />
     </div>
   );
-}
+};
