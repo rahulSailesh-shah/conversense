@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { SendIcon, SparklesIcon, Loader2Icon, User2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
 import type { Meeting } from "../../types";
@@ -47,7 +46,6 @@ export const MeetingChat = ({ meeting }: MeetingChatProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when messages change
