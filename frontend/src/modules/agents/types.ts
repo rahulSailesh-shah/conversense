@@ -7,6 +7,7 @@ export interface Agent {
   instructions: string;
   createdAt: string;
   updatedAt: string;
+  meetingCount: number;
 }
 
 export interface PaginatedAgentResponse {

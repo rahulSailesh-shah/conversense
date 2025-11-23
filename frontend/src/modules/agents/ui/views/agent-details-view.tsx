@@ -25,6 +25,8 @@ import { EditAgentDialog } from "../components/edit-agent-dialog";
 import { useMutationDeleteAgent } from "../../hooks/use-agents";
 import { useRouter } from "@tanstack/react-router";
 import { defaultSearchParams } from "@/config/search";
+import ReactMarkdown from "react-markdown";
+import { markdownComponents } from "@/components/markdown-components";
 
 export const AgentDetailsView = ({ data }: { data: Agent }) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -48,9 +50,9 @@ export const AgentDetailsView = ({ data }: { data: Agent }) => {
   };
 
   return (
-    <div className="flex-1 pb-4 px-4 md:px-8 flex flex-col gap-y-6">
+    <div className="h-full flex-1 pb-4 px-4 md:px-8 flex flex-col gap-y-6 overflow-hidden">
       <Breadcrumb>
-        <BreadcrumbList>
+        <BreadcrumbList className="text-xl">
           <BreadcrumbItem>
             <BreadcrumbLink href="/agents">Agents</BreadcrumbLink>
           </BreadcrumbItem>
@@ -61,8 +63,8 @@ export const AgentDetailsView = ({ data }: { data: Agent }) => {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <Card className="w-full">
-        <CardContent className="p-6 space-y-6">
+      <Card className="w-full flex-1 flex flex-col overflow-hidden">
+        <CardContent className="flex-1 overflow-y-auto p-6 space-y-6">
           <div className="flex justify-between items-start">
             <div className="flex items-center space-x-4">
               <GeneratedAvatar
@@ -106,17 +108,26 @@ export const AgentDetailsView = ({ data }: { data: Agent }) => {
 
           <Badge
             variant="outline"
-            className="flex items-center gap-x-2 [&>svg]:size-5"
+            className="flex items-center gap-x-2 [&>svg]:size-4"
           >
-            <VideoIcon className="text-blue-700" />5 Meetings
+            <VideoIcon className="text-blue-700" />
+            {data.meetingCount} Meeting
+            {data.meetingCount === 1 ? "" : "s"}
           </Badge>
 
           <div className="mt-8">
-            <h2 className="text-sm font-medium mb-3">Instructions</h2>
             <div className="bg-muted/50 p-4 rounded-md">
-              <p className="text-sm text-muted-foreground">
-                {data.instructions || "No instructions provided"}
-              </p>
+              {data.instructions ? (
+                <div className="prose prose-slate dark:prose-invert max-w-none">
+                  <ReactMarkdown components={markdownComponents}>
+                    {data.instructions}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No instructions provided
+                </p>
+              )}
             </div>
           </div>
         </CardContent>
@@ -125,7 +136,7 @@ export const AgentDetailsView = ({ data }: { data: Agent }) => {
       <DeleteDialog
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
-        message={`Are you sure you want to delete the agent "${data.name}"?`}
+        message={`Are you sure you want to delete the agent "${data.name}"? This will also delete all the meetings associated with it.`}
         onDelete={handleDelete}
       />
       <EditAgentDialog

@@ -46,6 +46,7 @@ type AgentResponse struct {
 	Name         string    `db:"name" json:"name"`
 	UserID       string    `db:"user_id" json:"userId"`
 	Instructions string    `db:"instructions" json:"instructions"`
+	MeetingCount int64     `db:"meeting_count" json:"meetingCount"`
 	CreatedAt    time.Time `db:"created_at" json:"createdAt"`
 	UpdatedAt    time.Time `db:"updated_at" json:"updatedAt"`
 }

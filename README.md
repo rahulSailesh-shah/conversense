@@ -1,70 +1,41 @@
-# Go-React Starter Kit
+# Conversense - AI-Powered Meeting Intelligence
 
-A modern full-stack starter template combining Go (backend) and React (frontend) for rapid web application development.
-
----
-
-## Project Structure
-
-```
-├── cmd/api/                # Go backend entrypoint
-│   └── main.go
-├── internal/               # Backend application logic
-│   ├── app/                # App initialization
-│   ├── db/                 # Database repo & SQL queries
-│   ├── server/             # HTTP server setup
-│   ├── service/            # Business logic/services
-│   └── transport/http/     # HTTP routing, handlers, middleware
-├── pkg/                    # Shared backend packages
-│   ├── auth/               # JWT & authentication
-│   ├── config/             # App configuration
-│   └── database/           # DB connection & migrations
-├── frontend/               # React frontend (Vite, TS, Tailwind)
-│   ├── src/                # App source code
-│   │   ├── components/     # UI components (shadcn/ui)
-│   │   ├── hooks/          # Custom React hooks
-│   │   ├── features/       # Feature modules
-│   │   ├── lib/            # Utility functions
-│   │   ├── routes/         # TanStack Router routes
-│   │   └── assets/         # Static assets
-│   ├── public/             # Static files
-│   ├── index.html          # App entry HTML
-│   ├── package.json        # Frontend dependencies
-│   ├── vite.config.ts      # Vite config
-│   ├── tsconfig*.json      # TypeScript configs
-│   └── components.json     # shadcn/ui config
-├── Makefile                # Common dev commands
-├── docker-compose.yml      # Local dev services (PostgreSQL)
-├── sqlc.yml                # SQLC codegen config
-├── go.mod                  # Go dependencies
-└── README.md               # Project documentation
-```
+Conversense is a cutting-edge platform designed to revolutionize how teams conduct and document meetings. By integrating real-time video conferencing with advanced AI capabilities, it provides automated transcription, intelligent summarization, and actionable insights.
 
 ---
 
-## Technologies Used
+## Features
+
+- **Real-time Video Conferencing**: Seamless, high-quality video calls powered by **LiveKit**.
+- **AI-Driven Insights**: Automated transcription and intelligent summarization using **Google Gemini**.
+- **Interactive Dashboard**: Manage meetings, view history, and access AI-generated reports.
+- **Smart Agents**: AI agents that participate in meetings to assist, record, and provide real-time support.
+- **Secure Authentication**: Robust user management and authentication.
+
+---
+
+## Technology Stack
 
 ### Backend
 
-- **Go** 1.25+
-- **Gin** (HTTP framework)
-- **PostgreSQL** (via Docker)
-- **SQLC** (type-safe DB access)
-- **JWT Auth** (jwx)
-- **Goose** (DB migrations)
-- **Makefile** (build, run, migrate)
+- **Go** 1.25+: Core backend language.
+- **Gin**: High-performance HTTP web framework.
+- **PostgreSQL**: Primary relational database.
+- **SQLC**: Type-safe Go code generation from SQL.
+- **LiveKit Server SDK**: For managing real-time video and audio.
+- **Google GenAI SDK**: For AI-powered transcription and summarization.
+- **Inngest**: For reliable background job processing and event-driven workflows.
+- **AWS S3**: For secure storage of meeting recordings and artifacts.
 
 ### Frontend
 
-- **React** (TypeScript)
-- **Vite** (bundler)
-- **TanStack Router** (routing)
-- **TanStack Query** (data fetching)
-- **Tailwind CSS** (utility-first styling)
-- **shadcn/ui** (component library)
-- **Radix UI** (accessible primitives)
-- **ESLint** (linting)
-- **BetterAuth** (auth management)
+- **React**: UI library for building interactive interfaces.
+- **Vite**: Next-generation frontend tooling.
+- **Tailwind CSS**: Utility-first CSS framework for rapid UI development.
+- **Shadcn/UI**: Reusable components built with Radix UI and Tailwind.
+- **TanStack Router**: Type-safe routing for React applications.
+- **TanStack Query**: Powerful asynchronous state management.
+- **BetterAuth**: Comprehensive authentication solution.
 
 ---
 
@@ -72,72 +43,93 @@ A modern full-stack starter template combining Go (backend) and React (frontend)
 
 ### Prerequisites
 
-- Go 1.25+
-- Node.js 18+
-- Docker
+- **Go** 1.25+
+- **Node.js** 18+
+- **Docker** & **Docker Compose**
+- **mprocs** (optional, for running multiple processes in one terminal)
 
-### Backend Setup
+### Installation & Setup
 
-1. Copy `.env.example` to `.env` and fill in DB credentials.
-2. Start PostgreSQL:
-   ```sh
-   make docker-up
-   ```
-3. Run DB migrations:
-   ```sh
-   make migrate-up
-   ```
-4. Build & run backend:
-   ```sh
-   make build
-   ./main
-   # or
-   make run-backend
-   ```
+1.  **Clone the repository**
 
-### Frontend Setup
+    ```bash
+    git clone https://github.com/rahulSailesh-shah/converSense.git
+    cd converSense
+    ```
 
-1. Install dependencies:
-   ```sh
-   cd frontend
-   npm install
-   ```
-2. Start dev server:
-   ```sh
-   npm run dev
-   ```
-3. Access at [http://localhost:5173](http://localhost:5173)
+2.  **Environment Configuration**
+    Copy the example environment file and configure your credentials:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    _Note: You will need to add credentials for LiveKit, Google Gemini, and AWS to fully enable all features._
+
+3.  **Start Infrastructure**
+    Spin up the database and other services using Docker:
+
+    ```bash
+    make docker-up
+    ```
+
+4.  **Run Migrations**
+    Apply database migrations:
+
+    ```bash
+    make migrate-up
+    ```
+
+5.  **Run the Application**
+    The recommended way to run the full stack (backend, frontend, auth, studio) is using `mprocs` via the make command:
+    ```bash
+    make dev
+    ```
+    Alternatively, you can run services individually:
+    - **Backend**: `make run-backend`
+    - **Frontend**: `make run-frontend`
+    - **Inngest**: `make run-inngest`
+
+---
+
+## Environment Variables
+
+Ensure your `.env` file includes the following configurations:
+
+```env
+# App
+PORT=8080
+APP_ENV=development
+
+# Database
+DB_URL="postgresql://admin:admin@localhost:5432/dbname"
+
+# Authentication
+JWKS_URL=http://localhost:3000/api/auth/jwks
+
+# LiveKit (Required for video)
+LIVEKIT_API_KEY=your_key
+LIVEKIT_API_SECRET=your_secret
+LIVEKIT_URL=your_url
+
+# Google Gemini (Required for AI)
+GEMINI_API_KEY=your_key
+
+# AWS S3 (Required for storage)
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your_key
+AWS_SECRET_ACCESS_KEY=your_secret
+AWS_BUCKET_NAME=your_bucket
+```
 
 ---
 
 ## Development Tools
 
-- **Makefile**: Build, run, clean, migrations, Docker
-- **Docker Compose**: Local PostgreSQL
-- **SQLC**: Go codegen from SQL
-- **Goose**: DB migrations
-- **ESLint**: Linting (frontend)
-- **Tailwind**: Styling
-- **shadcn/ui**: UI components
-
----
-
-## Useful Commands
-
-Backend:
-
-- `make build` — Build Go backend
-- `make run-backend` — Run backend
-- `make docker-up` / `make docker-down` — Start/stop DB
-- `make migrate-up` / `make migrate-down` — DB migrations
-
-Frontend:
-
-- `npm run dev` — Start frontend dev server
-- `npm run build` — Build frontend
-- `npm run lint` — Lint code
-
----
+- **Makefile**: Centralized commands for building, running, and maintaining the project.
+- **SQLC**: Generates type-safe Go code from SQL queries. Configured in `sqlc.yml`.
+- **Goose**: Handles database migrations.
+- **Air**: Live reload for Go development (optional, used in `make watch`).
 
 ## License
 

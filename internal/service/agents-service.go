@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rahulSailesh-shah/converSense/internal/db/repo"
@@ -42,8 +43,8 @@ func (s *agentService) CreateAgent(ctx context.Context, request dto.CreateAgentR
 
 func (s *agentService) UpdateAgent(ctx context.Context, request dto.UpdateAgentRequest) (*dto.AgentResponse, error) {
 	currentAgent, err := s.queries.GetAgent(ctx, repo.GetAgentParams{
-		ID:     request.ID,
-		UserID: request.UserID,
+		AgentID: request.ID,
+		UserID:  request.UserID,
 	})
 	if err != nil {
 		return nil, err
@@ -92,6 +93,7 @@ func (s *agentService) GetAgents(ctx context.Context, request dto.GetAgentsReque
 			Instructions: row.Instructions,
 			CreatedAt:    row.CreatedAt,
 			UpdatedAt:    row.UpdatedAt,
+			MeetingCount: row.MeetingCount,
 		})
 	}
 
@@ -109,22 +111,36 @@ func (s *agentService) GetAgents(ctx context.Context, request dto.GetAgentsReque
 }
 
 func (s *agentService) DeleteAgent(ctx context.Context, request dto.DeleteAgentRequest) error {
-	err := s.queries.DeleteAgent(ctx, request.ID)
+	fmt.Println("Deleting agent with ID:", request.ID)
+	err := s.queries.DeleteAgent(ctx, repo.DeleteAgentParams{
+		ID:     request.ID,
+		UserID: request.UserID,
+	})
+	fmt.Println("Deleted agent with ID:", request.ID)
 	if err != nil {
 		return err
 	}
+	fmt.Println("Deleted agent with ID:", request.ID, err)
 	return nil
 }
 
 func (s *agentService) GetAgent(ctx context.Context, request dto.GetAgentRequest) (*dto.AgentResponse, error) {
 	agent, err := s.queries.GetAgent(ctx, repo.GetAgentParams{
-		ID:     request.ID,
-		UserID: request.UserID,
+		AgentID: request.ID,
+		UserID:  request.UserID,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return toAgentResponse(agent), nil
+	return &dto.AgentResponse{
+		ID:           agent.ID,
+		Name:         agent.Name,
+		UserID:       agent.UserID,
+		Instructions: agent.Instructions,
+		CreatedAt:    agent.CreatedAt,
+		UpdatedAt:    agent.UpdatedAt,
+		MeetingCount: agent.MeetingCount,
+	}, nil
 }
 
 func toAgentResponse(agent repo.Agent) *dto.AgentResponse {

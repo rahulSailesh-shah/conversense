@@ -137,7 +137,8 @@ func (h *AgentHandler) DeleteAgent(c *gin.Context) {
 	}
 
 	err = h.agentService.DeleteAgent(c.Request.Context(), dto.DeleteAgentRequest{
-		ID: agentId,
+		ID:     agentId,
+		UserID: c.MustGet("userId").(string),
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{

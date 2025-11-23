@@ -223,7 +223,7 @@ export const SignUpView = () => {
               </div>
             </form>
           </Form>
-          <div className="bg-radial from-sidebar-accent to-sidebar relative hidden md:flex flex-col gap-y-4 items-center justify-center">
+          <div className="bg-radial from-yellow-800/80 to-yellow-900/80 relative hidden md:flex flex-col gap-y-4 items-center justify-center">
             <img
               src="/logos/logo.svg"
               alt="ConverSense Logo"
