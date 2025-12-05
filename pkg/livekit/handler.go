@@ -3,7 +3,6 @@ package livekit
 import (
 	"context"
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/livekit/media-sdk"
 	"github.com/rahulSailesh-shah/converSense/internal/db/repo"
 	"github.com/rahulSailesh-shah/converSense/pkg/config"
+	sentimentanalyzer "github.com/rahulSailesh-shah/converSense/pkg/sentiment-analyzer"
 	"google.golang.org/genai"
 )
 
@@ -20,6 +20,7 @@ type GeminiRealtimeAPIHandler struct {
 	ctx                context.Context
 	cancel             context.CancelFunc
 	cb                 *GeminiRealtimeAPIHandlerCallbacks
+	sentimentAnalyzer  sentimentanalyzer.SentimentAnalyzer
 	transcript         *SessionTranscript
 	userDetails        *repo.User
 	meetingDetails     *repo.GetMeetingRow
@@ -28,8 +29,17 @@ type GeminiRealtimeAPIHandler struct {
 	currentTurnStart   time.Time
 }
 
+type TranscriptDataStream struct {
+	Role      string    `json:"role"`      // "user" or "ai"
+	Name      string    `json:"name"`      // Speaker's name
+	Content   string    `json:"content"`   // Transcript text
+	Timestamp time.Time `json:"timestamp"` // When the segment was captured
+}
+
 type GeminiRealtimeAPIHandlerCallbacks struct {
-	OnAudioReceived func(audio media.PCM16Sample)
+	OnAudioReceived  func(audio media.PCM16Sample)
+	OnUserSentiment  func(result *sentimentanalyzer.SentimentResult)
+	OnUserTranscript func(result *TranscriptDataStream)
 }
 
 type SessionTranscript struct {
@@ -48,6 +58,7 @@ func NewGeminiRealtimeAPIHandler(parentCtx context.Context,
 	userDetails *repo.User,
 	meetingDetails *repo.GetMeetingRow,
 	cb *GeminiRealtimeAPIHandlerCallbacks,
+	sentimentAnalyzer sentimentanalyzer.SentimentAnalyzer,
 ) (*GeminiRealtimeAPIHandler, error) {
 	ctx, cancel := context.WithCancel(parentCtx)
 
@@ -84,13 +95,14 @@ func NewGeminiRealtimeAPIHandler(parentCtx context.Context,
 	}
 
 	h := &GeminiRealtimeAPIHandler{
-		client:         client,
-		session:        session,
-		ctx:            ctx,
-		cancel:         cancel,
-		cb:             cb,
-		userDetails:    userDetails,
-		meetingDetails: meetingDetails,
+		client:            client,
+		session:           session,
+		ctx:               ctx,
+		cancel:            cancel,
+		cb:                cb,
+		sentimentAnalyzer: sentimentAnalyzer,
+		userDetails:       userDetails,
+		meetingDetails:    meetingDetails,
 		transcript: &SessionTranscript{
 			Segments: make([]SessionTranscriptSegment, 0),
 		},
@@ -148,6 +160,12 @@ func (h *GeminiRealtimeAPIHandler) handleMessage(response *genai.LiveServerMessa
 		if text != "" {
 			h.currentBotContent += " " + text
 		}
+		h.cb.OnUserTranscript(&TranscriptDataStream{
+			Role:      "ai",
+			Name:      h.meetingDetails.AgentName,
+			Content:   strings.TrimSpace(h.currentBotContent),
+			Timestamp: h.currentTurnStart,
+		})
 	}
 
 	// Accumulate input transcription chunks from the user
@@ -156,6 +174,12 @@ func (h *GeminiRealtimeAPIHandler) handleMessage(response *genai.LiveServerMessa
 		if text != "" {
 			h.currentUserContent += " " + text
 		}
+		h.cb.OnUserTranscript(&TranscriptDataStream{
+			Role:      "user",
+			Name:      h.userDetails.Name,
+			Content:   strings.TrimSpace(h.currentUserContent),
+			Timestamp: h.currentTurnStart,
+		})
 	}
 
 	// Handle audio from the bot
@@ -195,17 +219,19 @@ func (h *GeminiRealtimeAPIHandler) handleMessage(response *genai.LiveServerMessa
 			h.transcript.Segments = append(h.transcript.Segments, botSegment)
 		}
 
+		userMessage := h.currentUserContent
 		h.currentUserContent = ""
 		h.currentBotContent = ""
 		h.currentTurnStart = time.Now()
+		if userMessage != "" {
+			res, err := h.sentimentAnalyzer.Analyze(h.ctx, userMessage, h.userDetails.Name)
+			if err != nil {
+				fmt.Println("Error analyzing sentiment:", err)
+			}
+			h.cb.OnUserSentiment(res)
 
-		jsonData, err := json.MarshalIndent(h.transcript, "", "  ")
-		if err != nil {
-			fmt.Println("Error marshaling transcript:", err)
-		} else {
-			fmt.Println("\n=== Full Transcript ===")
-			fmt.Println(string(jsonData))
 		}
+
 	}
 }
 

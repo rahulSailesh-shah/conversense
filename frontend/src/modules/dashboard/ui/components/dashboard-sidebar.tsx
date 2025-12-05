@@ -38,7 +38,7 @@ export const DashboardSidebar = () => {
             alt="Conversense Logo"
             className="h-8 w-8"
           />
-          <p className="text-2xl font-semibold">ConverSense</p>
+          <p className="text-2xl font-semibold dark:text-white">ConverSense</p>
         </Link>
       </SidebarHeader>
       <div className="px-4 py-2">

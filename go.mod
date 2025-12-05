@@ -4,6 +4,7 @@ go 1.25.1
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.40.0
+	github.com/aws/aws-sdk-go-v2/config v1.32.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.91.1
 	github.com/gin-contrib/cors v1.7.6
@@ -16,6 +17,7 @@ require (
 	github.com/livekit/media-sdk v0.0.0-20251114100349-04e36dff48cc
 	github.com/livekit/protocol v1.43.1
 	github.com/livekit/server-sdk-go/v2 v2.12.8
+	github.com/ollama/ollama v0.13.1
 	github.com/pion/webrtc/v4 v4.1.6
 	github.com/polarsource/polar-go v0.11.1
 	go.uber.org/atomic v1.11.0
@@ -33,7 +35,6 @@ require (
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/at-wat/ebml-go v0.17.1 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.3 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.32.0 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.14 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.14 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.14 // indirect

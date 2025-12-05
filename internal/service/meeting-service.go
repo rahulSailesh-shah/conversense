@@ -227,9 +227,9 @@ func (s *meetingService) StartMeeting(ctx context.Context, request dto.StartMeet
 		s.geminiConfig,
 		s.awsConfig,
 		livekit.SessionCallbacks{
-			OnMeetingEnd: func(meetingID string, recordingURL string, transcriptURL string, err error) {
-				s.onMeetingEnd(meetingID, recordingURL, transcriptURL, err)
-			},
+			// OnMeetingEnd: func(meetingID string, recordingURL string, transcriptURL string, err error) {
+			// 	s.onMeetingEnd(meetingID, recordingURL, transcriptURL, err)
+			// },
 		},
 	)
 

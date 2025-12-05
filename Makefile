@@ -17,7 +17,7 @@ docker-up:
 	fi
 
 docker-down:
-	@if docker compose down 2>/dev/null; then \
+	@if docker compose down -v 2>/dev/null; then \
 		: ; \
 	else \
 		echo "Falling back to Docker Compose V1"; \
@@ -64,13 +64,12 @@ run-inngest:
 	@echo "Starting inngest..."
 	npx inngest-cli@latest dev -u $(INNGEST_ENDPOINT)
 
-dev:
-	@echo "Starting development environment..."
-	@if command -v mprocs > /dev/null; then \
-		mprocs "make run-auth-service" "sleep 2 && make run-frontend" "sleep 5 && make watch" "make run-studio"; \
-	else \
-		echo "mprocs is not installed. Install it with: brew install mprocs or cargo install mprocs"; \
-		exit 1; \
-	fi
+run-auth:
+	@echo "Starting auth service..."
+	@cd packages/auth && bun run dev
 
-.PHONY: build run-backend clean watch docker-run docker-down migrate-up migrate-down migrate-status run-frontend dev run-inngest
+make run-studio:
+	@echo "Starting studio..."
+	@cd packages/auth && bun run db:studio
+
+.PHONY: build run-backend clean watch docker-run docker-down migrate-up migrate-down migrate-status run-frontend run-inngest run-auth run-studio

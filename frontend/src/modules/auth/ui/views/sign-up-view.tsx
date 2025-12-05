@@ -223,13 +223,15 @@ export const SignUpView = () => {
               </div>
             </form>
           </Form>
-          <div className="bg-radial from-yellow-800/80 to-yellow-900/80 relative hidden md:flex flex-col gap-y-4 items-center justify-center">
+          <div className="   from-muted via-background to-muted/50 relative hidden md:flex flex-col gap-y-4 items-center justify-center border-r border-border">
             <img
               src="/logos/logo.svg"
               alt="ConverSense Logo"
-              className="h-[92px] w-[92px ]"
+              className="h-[92px] w-[92px]"
             />
-            <p className="text-2xl font-semibold text-white">ConverSense</p>
+            <p className="text-2xl font-semibold text-foreground">
+              ConverSense
+            </p>
           </div>
         </CardContent>
       </Card>

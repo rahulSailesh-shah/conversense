@@ -20,27 +20,34 @@ import (
 	"github.com/pion/webrtc/v4"
 	"github.com/rahulSailesh-shah/converSense/internal/db/repo"
 	"github.com/rahulSailesh-shah/converSense/pkg/config"
+	sentimentanalyzer "github.com/rahulSailesh-shah/converSense/pkg/sentiment-analyzer"
 )
 
 type SessionCallbacks struct {
 	OnMeetingEnd func(meetingID string, recordingURL string, transcriptURL string, err error)
 }
 
+type StreamTextData struct {
+	Type string      `json:"type"`
+	Data interface{} `json:"data"`
+}
+
 type LiveKitSession struct {
-	meetingDetails *repo.GetMeetingRow
-	userDetails    *repo.User
-	room           *lksdk.Room
-	handler        *GeminiRealtimeAPIHandler
-	egressInfo     *livekit.EgressInfo
-	lkConfig       *config.LiveKitConfig
-	geminiConfig   *config.GeminiConfig
-	awsConfig      *config.AWSConfig
-	ctx            context.Context
-	cancel         context.CancelFunc
-	callbacks      SessionCallbacks
-	recordingURL   string
-	transcriptURL  string
-	stopOnce       sync.Once
+	meetingDetails  *repo.GetMeetingRow
+	userDetails     *repo.User
+	room            *lksdk.Room
+	handler         *GeminiRealtimeAPIHandler
+	egressInfo      *livekit.EgressInfo
+	lkConfig        *config.LiveKitConfig
+	geminiConfig    *config.GeminiConfig
+	awsConfig       *config.AWSConfig
+	ctx             context.Context
+	cancel          context.CancelFunc
+	callbacks       SessionCallbacks
+	recordingURL    string
+	transcriptURL   string
+	stopOnce        sync.Once
+	textStreamQueue chan StreamTextData
 }
 
 func NewLiveKitSession(
@@ -54,15 +61,16 @@ func NewLiveKitSession(
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &LiveKitSession{
-		meetingDetails: meetingDetails,
-		userDetails:    userDetails,
-		lkConfig:       lkConfig,
-		geminiConfig:   geminiConfig,
-		awsConfig:      awsConfig,
-		ctx:            ctx,
-		cancel:         cancel,
-		callbacks:      callbacks,
-		stopOnce:       sync.Once{},
+		meetingDetails:  meetingDetails,
+		userDetails:     userDetails,
+		lkConfig:        lkConfig,
+		geminiConfig:    geminiConfig,
+		awsConfig:       awsConfig,
+		ctx:             ctx,
+		cancel:          cancel,
+		callbacks:       callbacks,
+		stopOnce:        sync.Once{},
+		textStreamQueue: make(chan StreamTextData, 100),
 	}
 }
 
@@ -79,9 +87,12 @@ func (s *LiveKitSession) Stop() error {
 	s.stopOnce.Do(func() {
 		s.cancel()
 		if s.egressInfo != nil {
-			if err := s.stopRecording(s.egressInfo.EgressId); err != nil {
-				stopErr = fmt.Errorf("failed to stop recording: %w", err)
-			}
+			// if err := s.stopRecording(s.egressInfo.EgressId); err != nil {
+			// 	stopErr = fmt.Errorf("failed to stop recording: %w", err)
+			// }
+		}
+		if s.textStreamQueue != nil {
+			close(s.textStreamQueue)
 		}
 		if s.room != nil {
 			s.room.Disconnect()
@@ -113,6 +124,11 @@ func (s *LiveKitSession) GenerateUserToken() (string, error) {
 }
 
 func (s *LiveKitSession) connectBot() error {
+	sentimentAnalyzer, err := sentimentanalyzer.NewSentimentAnalyzer(sentimentanalyzer.AnalyzerTypeOllama)
+	if err != nil {
+		logger.Errorw("Failed to create sentiment analyzer", err, "meetingID", s.meetingDetails.ID.String())
+		return fmt.Errorf("failed to create sentiment analyzer: %w", err)
+	}
 	audioWriterChan := make(chan media.PCM16Sample, 500)
 	handler, err := NewGeminiRealtimeAPIHandler(s.ctx,
 		s.geminiConfig,
@@ -128,7 +144,29 @@ func (s *LiveKitSession) connectBot() error {
 					logger.Warnw("audio writer channel is full", fmt.Errorf("audio writer channel is full"))
 				}
 			},
-		})
+			OnUserSentiment: func(result *sentimentanalyzer.SentimentResult) {
+				streamTextData := StreamTextData{
+					Type: "sentiment",
+					Data: result,
+				}
+				select {
+				case s.textStreamQueue <- streamTextData:
+				default:
+					logger.Warnw("Text stream queue full, dropping sentiment message", nil)
+				}
+			},
+			OnUserTranscript: func(result *TranscriptDataStream) {
+				streamTextData := StreamTextData{
+					Type: "transcript",
+					Data: result,
+				}
+				select {
+				case s.textStreamQueue <- streamTextData:
+				default:
+					logger.Warnw("Text stream queue full, dropping transcript message", nil)
+				}
+			},
+		}, sentimentAnalyzer)
 	if err != nil {
 		close(audioWriterChan)
 		return fmt.Errorf("failed to create Gemini handler: %w", err)
@@ -142,13 +180,14 @@ func (s *LiveKitSession) connectBot() error {
 	}
 
 	go s.handlePublish(audioWriterChan)
+	go s.handleTextStreamQueue()
 
-	egressInfo, err := s.startRecording()
-	if err != nil {
-		logger.Errorw("Failed to start recording", err, "meetingID", s.meetingDetails.ID.String())
-	} else {
-		s.egressInfo = egressInfo
-	}
+	// egressInfo, err := s.startRecording()
+	// if err != nil {
+	// 	logger.Errorw("Failed to start recording", err, "meetingID", s.meetingDetails.ID.String())
+	// } else {
+	// 	s.egressInfo = egressInfo
+	// }
 	return nil
 }
 
@@ -224,6 +263,28 @@ func (s *LiveKitSession) handlePublish(audioWriterChan chan media.PCM16Sample) {
 			if err := publishTrack.WriteSample(sample); err != nil {
 				logger.Errorw("Failed to write sample", err, "meetingID", s.meetingDetails.ID.String())
 			}
+		case <-s.ctx.Done():
+			return
+		}
+	}
+}
+
+func (s *LiveKitSession) handleTextStreamQueue() {
+	for {
+		select {
+		case data, ok := <-s.textStreamQueue:
+			if !ok {
+				// Channel closed, exit worker
+				return
+			}
+			marshalData, err := json.Marshal(data)
+			if err != nil {
+				logger.Errorw("Failed to marshal text stream data", err, "meetingID", s.meetingDetails.ID.String())
+				continue
+			}
+			s.room.LocalParticipant.SendText(string(marshalData), lksdk.StreamTextOptions{
+				Topic: "room",
+			})
 		case <-s.ctx.Done():
 			return
 		}

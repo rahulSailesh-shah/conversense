@@ -54,7 +54,7 @@ export const MeetingRoomView = () => {
           })
         }
       >
-        <VideoConference />
+        <VideoConference meetingId={meetingId} />
       </LiveKitRoom>
     </div>
   );
