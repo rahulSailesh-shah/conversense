@@ -58,7 +58,8 @@ func NewMeetingService(
 	}
 }
 
-func (s *meetingService) CreateMeeting(ctx context.Context, request dto.CreateMeetingRequest) (*dto.MeetingResponse, error) {
+func (s *meetingService) CreateMeeting(ctx context.Context,
+	request dto.CreateMeetingRequest) (*dto.MeetingResponse, error) {
 	newMeeting, err := s.queries.CreateMeeting(ctx, repo.CreateMeetingParams{
 		Name:    request.Name,
 		UserID:  request.UserID,
@@ -70,7 +71,8 @@ func (s *meetingService) CreateMeeting(ctx context.Context, request dto.CreateMe
 	return toMeetingResponse(newMeeting), nil
 }
 
-func (s *meetingService) UpdateMeeting(ctx context.Context, request dto.UpdateMeetingRequest) (*dto.MeetingResponse, error) {
+func (s *meetingService) UpdateMeeting(ctx context.Context,
+	request dto.UpdateMeetingRequest) (*dto.MeetingResponse, error) {
 	currentMeeting, err := s.queries.GetMeeting(ctx, repo.GetMeetingParams{
 		ID:     request.ID,
 		UserID: request.UserID,
@@ -136,7 +138,8 @@ func (s *meetingService) UpdateMeeting(ctx context.Context, request dto.UpdateMe
 	return toMeetingResponse(updatedMeeting), nil
 }
 
-func (s *meetingService) GetMeetings(ctx context.Context, request dto.GetMeetingsRequest) (*dto.PaginatedMeetingsResponse, error) {
+func (s *meetingService) GetMeetings(ctx context.Context,
+	request dto.GetMeetingsRequest) (*dto.PaginatedMeetingsResponse, error) {
 	rows, err := s.queries.GetMeetings(ctx, repo.GetMeetingsParams{
 		UserID:  request.UserID,
 		Column2: request.Search,
@@ -227,9 +230,9 @@ func (s *meetingService) StartMeeting(ctx context.Context, request dto.StartMeet
 		s.geminiConfig,
 		s.awsConfig,
 		livekit.SessionCallbacks{
-			// OnMeetingEnd: func(meetingID string, recordingURL string, transcriptURL string, err error) {
-			// 	s.onMeetingEnd(meetingID, recordingURL, transcriptURL, err)
-			// },
+			OnMeetingEnd: func(meetingID string, recordingURL string, transcriptURL string, err error) {
+				s.onMeetingEnd(meetingID, recordingURL, transcriptURL, err)
+			},
 		},
 	)
 
@@ -256,7 +259,8 @@ func (s *meetingService) StartMeeting(ctx context.Context, request dto.StartMeet
 	return token, nil
 }
 
-func (s *meetingService) GetPreSignedRecordingURL(ctx context.Context, request dto.GetPreSignedRecordingURLRequest) (string, error) {
+func (s *meetingService) GetPreSignedRecordingURL(ctx context.Context,
+	request dto.GetPreSignedRecordingURLRequest) (string, error) {
 	meeting, err := s.queries.GetMeeting(ctx, repo.GetMeetingParams{
 		ID:     request.MeetingID,
 		UserID: request.UserID,
@@ -353,7 +357,8 @@ func (s *meetingService) onMeetingEnd(meetingID string, recordingURL string, tra
 		fmt.Printf("[ERROR] Meeting ended with errors: %v\n", err)
 		return
 	}
-	fmt.Println("[-] Meeting ended, starting post-processing", "meetingID", meetingID, "recordingURL", recordingURL, "transcriptURL", transcriptURL)
+	fmt.Println("[-] Meeting ended, starting post-processing", "meetingID", meetingID, "recordingURL", recordingURL,
+		"transcriptURL", transcriptURL)
 
 	meetingUUID, err := uuid.Parse(meetingID)
 	if err != nil {

@@ -46,9 +46,9 @@ func RegisterRoutes(r *gin.Engine, authKeys jwk.Set, app *app.App) {
 	}
 
 	// Chat routes
-	geminiHandler := handler.NewGeminiHandler(app.Service.Gemini)
-	protected.POST("/chat/:meetingId", geminiHandler.Chat)
-	protected.GET("/chat/:meetingId", geminiHandler.GetHistory)
+	chatHandler := handler.NewChatHandler(app.Service.Chat)
+	protected.POST("/chat/:meetingId", chatHandler.Chat)
+	protected.GET("/chat/:meetingId", chatHandler.GetHistory)
 
 	// Meeting routes
 	meetingRoutes := protected.Group("/meetings")

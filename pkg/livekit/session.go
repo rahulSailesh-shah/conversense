@@ -87,9 +87,9 @@ func (s *LiveKitSession) Stop() error {
 	s.stopOnce.Do(func() {
 		s.cancel()
 		if s.egressInfo != nil {
-			// if err := s.stopRecording(s.egressInfo.EgressId); err != nil {
-			// 	stopErr = fmt.Errorf("failed to stop recording: %w", err)
-			// }
+			if err := s.stopRecording(s.egressInfo.EgressId); err != nil {
+				stopErr = fmt.Errorf("failed to stop recording: %w", err)
+			}
 		}
 		if s.textStreamQueue != nil {
 			close(s.textStreamQueue)
@@ -182,12 +182,12 @@ func (s *LiveKitSession) connectBot() error {
 	go s.handlePublish(audioWriterChan)
 	go s.handleTextStreamQueue()
 
-	// egressInfo, err := s.startRecording()
-	// if err != nil {
-	// 	logger.Errorw("Failed to start recording", err, "meetingID", s.meetingDetails.ID.String())
-	// } else {
-	// 	s.egressInfo = egressInfo
-	// }
+	egressInfo, err := s.startRecording()
+	if err != nil {
+		logger.Errorw("Failed to start recording", err, "meetingID", s.meetingDetails.ID.String())
+	} else {
+		s.egressInfo = egressInfo
+	}
 	return nil
 }
 
@@ -210,7 +210,8 @@ func (s *LiveKitSession) callbacksForRoom() *lksdk.RoomCallback {
 
 	return &lksdk.RoomCallback{
 		ParticipantCallback: lksdk.ParticipantCallback{
-			OnTrackSubscribed: func(track *webrtc.TrackRemote, publication *lksdk.RemoteTrackPublication, rp *lksdk.RemoteParticipant) {
+			OnTrackSubscribed: func(track *webrtc.TrackRemote, publication *lksdk.RemoteTrackPublication,
+				rp *lksdk.RemoteParticipant) {
 				if pcmRemoteTrack != nil {
 					return
 				}
@@ -354,7 +355,8 @@ func (s *LiveKitSession) stopRecording(egressID string) error {
 		return err
 	}
 
-	s.recordingURL = fmt.Sprintf("s3://%s/%s/%s/recording.mp4", s.awsConfig.Bucket, s.userDetails.ID, s.meetingDetails.ID.String())
+	s.recordingURL = fmt.Sprintf("s3://%s/%s/%s/recording.mp4", s.awsConfig.Bucket, s.userDetails.ID,
+		s.meetingDetails.ID.String())
 
 	if s.handler != nil {
 		transcriptData := s.handler.GetTranscript()

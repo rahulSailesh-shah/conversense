@@ -18,6 +18,7 @@ require (
 	github.com/livekit/protocol v1.43.1
 	github.com/livekit/server-sdk-go/v2 v2.12.8
 	github.com/ollama/ollama v0.13.1
+	github.com/openai/openai-go v1.12.0
 	github.com/pion/webrtc/v4 v4.1.6
 	github.com/polarsource/polar-go v0.11.1
 	go.uber.org/atomic v1.11.0
@@ -136,6 +137,10 @@ require (
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/spyzhov/ajson v0.8.0 // indirect
 	github.com/stoewer/go-strcase v1.3.1 // indirect
+	github.com/tidwall/gjson v1.14.4 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.1 // indirect
+	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/twitchtv/twirp v8.1.3+incompatible // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect

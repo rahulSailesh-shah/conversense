@@ -16,6 +16,9 @@ import (
 	"github.com/inngest/inngestgo/step"
 	"github.com/rahulSailesh-shah/converSense/internal/db/repo"
 	"google.golang.org/genai"
+
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
 )
 
 func (i *Inngest) RegisterFunctions() error {
@@ -83,10 +86,11 @@ func (i *Inngest) postProcessMeeting() error {
 			if transcriptURL == nil {
 				return "", fmt.Errorf("no transcript URL found for meeting")
 			}
-			transcriptData, err := step.Run(ctx, "fetch-transcript", func(ctx context.Context) (*SessionTranscript, error) {
-				transcript, err := i.fetchTranscriptFromS3(ctx, *transcriptURL)
-				return transcript, err
-			})
+			transcriptData, err := step.Run(ctx, "fetch-transcript",
+				func(ctx context.Context) (*SessionTranscript, error) {
+					transcript, err := i.fetchTranscriptFromS3(ctx, *transcriptURL)
+					return transcript, err
+				})
 			if err != nil {
 				return nil, err
 			}
@@ -94,7 +98,7 @@ func (i *Inngest) postProcessMeeting() error {
 
 			// Generate summary
 			summary, err := step.Run(ctx, "generate-summary", func(ctx context.Context) (string, error) {
-				summary, err := i.processTranscriptWithGemini(ctx, transcriptData, meetingDetails)
+				summary, err := i.processTranscriptWithOpenAI(ctx, transcriptData)
 				return summary, err
 			})
 			if err != nil {
@@ -175,7 +179,8 @@ func (i *Inngest) fetchTranscriptFromS3(ctx context.Context, transcriptURL strin
 	return &transcript, nil
 }
 
-func (i *Inngest) processTranscriptWithGemini(ctx context.Context, transcript *SessionTranscript, meetingDetails *repo.GetMeetingRow) (string, error) {
+func (i *Inngest) processTranscriptWithGemini(ctx context.Context, transcript *SessionTranscript,
+) (string, error) {
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{
 		APIKey:  i.geminiConfig.APIKey,
 		Backend: genai.BackendGeminiAPI,
@@ -226,4 +231,52 @@ func (i *Inngest) processTranscriptWithGemini(ctx context.Context, transcript *S
 	}
 
 	return response.Text(), nil
+}
+
+func (i *Inngest) processTranscriptWithOpenAI(ctx context.Context, transcript *SessionTranscript) (string, error) {
+	client := openai.NewClient(
+		option.WithAPIKey(i.openaiConfig.APIKey),
+		option.WithBaseURL(i.openaiConfig.BaseURL),
+	)
+
+	var fullText strings.Builder
+	for _, segment := range transcript.Segments {
+		fullText.WriteString(fmt.Sprintf("[%s]: %s\n", segment.Name, segment.Content))
+	}
+
+	prompt := fmt.Sprintf(`
+        You are an expert summarizer. You write readable, concise, simple content. You are given a transcript of a meeting and you need to summarize it.
+
+        Use the following markdown structure for every output:
+
+        ### Overview
+        Provide a detailed, engaging summary of the session's content. Focus on major features, user workflows, and any key takeaways. Write in a narrative style, using full sentences. Highlight unique or powerful aspects of the product, platform, or discussion.
+
+        ### Notes
+        Break down key content into thematic sections with timestamp ranges. Each section should summarize key points, actions, or demos in bullet format.
+
+        Example:
+        #### Section Name
+        - Main point or demo shown here
+        - Another key insight or interaction
+        - Follow-up tool or explanation provided
+
+        #### Next Section
+        - Feature X automatically does Y
+        - Mention of integration with Z
+
+        Transcript:\n
+        %s`, fullText.String())
+
+	response, err := client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+		Model: "z-ai/glm4.7",
+		Messages: []openai.ChatCompletionMessageParamUnion{
+			openai.UserMessage(prompt),
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to generate content: %w", err)
+	}
+
+	return response.Choices[0].Message.Content, nil
 }

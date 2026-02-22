@@ -11,11 +11,13 @@ type Inngest struct {
 	client       inngestgo.Client
 	awsConfig    *config.AWSConfig
 	geminiConfig *config.GeminiConfig
+	openaiConfig *config.OpenAIConfig
 	queries      *repo.Queries
 }
 
 func NewInngest(awsConfig *config.AWSConfig,
 	geminiConfig *config.GeminiConfig,
+	openaiConfig *config.OpenAIConfig,
 	queries *repo.Queries,
 ) (*Inngest, error) {
 	client, err := inngestgo.NewClient(inngestgo.ClientOpts{
@@ -30,6 +32,7 @@ func NewInngest(awsConfig *config.AWSConfig,
 		client:       client,
 		awsConfig:    awsConfig,
 		geminiConfig: geminiConfig,
+		openaiConfig: openaiConfig,
 		queries:      queries,
 	}
 

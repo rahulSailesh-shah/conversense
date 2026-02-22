@@ -11,13 +11,13 @@ import (
 	"github.com/rahulSailesh-shah/converSense/internal/service"
 )
 
-type GeminiHandler struct {
-	geminiService service.GeminiService
+type ChatHandler struct {
+	chatService service.ChatService
 }
 
-func NewGeminiHandler(geminiService service.GeminiService) *GeminiHandler {
-	return &GeminiHandler{
-		geminiService: geminiService,
+func NewChatHandler(chatService service.ChatService) *ChatHandler {
+	return &ChatHandler{
+		chatService: chatService,
 	}
 }
 
@@ -25,7 +25,7 @@ type ChatRequest struct {
 	Message string `json:"message" binding:"required"`
 }
 
-func (h *GeminiHandler) Chat(c *gin.Context) {
+func (h *ChatHandler) Chat(c *gin.Context) {
 	meetingID, err := uuid.Parse(c.Param("meetingId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
@@ -46,7 +46,7 @@ func (h *GeminiHandler) Chat(c *gin.Context) {
 
 	userID := c.MustGet("userId").(string)
 
-	stream, err := h.geminiService.Chat(c.Request.Context(), meetingID, userID, req.Message)
+	stream, err := h.chatService.Chat(c.Request.Context(), meetingID, userID, req.Message)
 	if err != nil {
 		// Distinguish between auth error and other errors if possible,
 		// but for now 500 or 403 based on error string is a simple heuristic
@@ -80,7 +80,7 @@ func (h *GeminiHandler) Chat(c *gin.Context) {
 	})
 }
 
-func (h *GeminiHandler) GetHistory(c *gin.Context) {
+func (h *ChatHandler) GetHistory(c *gin.Context) {
 	// 1. Parse meeting ID
 	meetingIDStr := c.Param("meetingId")
 	meetingID, err := uuid.Parse(meetingIDStr)
@@ -97,7 +97,7 @@ func (h *GeminiHandler) GetHistory(c *gin.Context) {
 	}
 
 	// 3. Fetch chat history
-	history, err := h.geminiService.GetChatHistory(c.Request.Context(), meetingID, userID.(string))
+	history, err := h.chatService.GetChatHistory(c.Request.Context(), meetingID, userID.(string))
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return

@@ -27,6 +27,7 @@ type AppConfig struct {
 	LiveKit  LiveKitConfig
 	AWS      AWSConfig
 	Gemini   GeminiConfig
+	OpenAI   OpenAIConfig
 	LogLevel string
 	Env      string
 }
@@ -56,6 +57,11 @@ type GeminiConfig struct {
 	RealtimeModel string
 	ChatModel     string
 	APIKey        string
+}
+
+type OpenAIConfig struct {
+	APIKey  string
+	BaseURL string
 }
 
 func LoadConfig() (*AppConfig, error) {
@@ -98,6 +104,10 @@ func LoadConfig() (*AppConfig, error) {
 			RealtimeModel: os.Getenv("GEMINI_REALTIME_MODEL"),
 			ChatModel:     os.Getenv("GEMINI_CHAT_MODEL"),
 			APIKey:        os.Getenv("GEMINI_API_KEY"),
+		},
+		OpenAI: OpenAIConfig{
+			APIKey:  os.Getenv("OPENAI_API_KEY"),
+			BaseURL: os.Getenv("OPENAI_BASE_URL"),
 		},
 		LogLevel: "info",
 		Env:      os.Getenv("APP_ENV"),

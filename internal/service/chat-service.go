@@ -12,26 +12,27 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
 	"github.com/rahulSailesh-shah/converSense/internal/db/repo"
 	"github.com/rahulSailesh-shah/converSense/pkg/config"
 	"github.com/rahulSailesh-shah/converSense/pkg/livekit"
-	"google.golang.org/genai"
 )
 
-type GeminiService interface {
+type ChatService interface {
 	Chat(ctx context.Context, meetingID uuid.UUID, userID string, message string) (<-chan string, error)
 	GetChatHistory(ctx context.Context, meetingID uuid.UUID, userID string) ([]repo.MeetingChatMessages, error)
 }
 
-type geminiService struct {
+type chatService struct {
 	queries         *repo.Queries
-	config          *config.GeminiConfig
+	config          *config.OpenAIConfig
 	awsConfig       *config.AWSConfig
 	transcriptCache sync.Map // Cache transcripts by meetingID
 }
 
-func NewGeminiService(queries *repo.Queries, config *config.GeminiConfig, awsConfig *config.AWSConfig) GeminiService {
-	return &geminiService{
+func NewChatService(queries *repo.Queries, config *config.OpenAIConfig, awsConfig *config.AWSConfig) ChatService {
+	return &chatService{
 		queries:         queries,
 		config:          config,
 		awsConfig:       awsConfig,
@@ -39,7 +40,7 @@ func NewGeminiService(queries *repo.Queries, config *config.GeminiConfig, awsCon
 	}
 }
 
-func (s *geminiService) Chat(ctx context.Context, meetingID uuid.UUID, userID string, message string) (<-chan string, error) {
+func (s *chatService) Chat(ctx context.Context, meetingID uuid.UUID, userID string, message string) (<-chan string, error) {
 	meeting, err := s.queries.GetMeeting(ctx, repo.GetMeetingParams{
 		ID:     meetingID,
 		UserID: userID,
@@ -87,12 +88,10 @@ func (s *geminiService) Chat(ctx context.Context, meetingID uuid.UUID, userID st
 		}
 	}
 
-	client, err := genai.NewClient(ctx, &genai.ClientConfig{
-		APIKey: s.config.APIKey,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create gemini client: %w", err)
-	}
+	client := openai.NewClient(
+		option.WithAPIKey(s.config.APIKey),
+		option.WithBaseURL(s.config.BaseURL),
+	)
 
 	systemPrompt := fmt.Sprintf(`
       You are an AI assistant helping the user revisit a recently completed meeting.
@@ -114,37 +113,39 @@ func (s *geminiService) Chat(ctx context.Context, meetingID uuid.UUID, userID st
       Be concise, helpful, and focus on providing accurate information from the meeting and the ongoing conversation.
       `, transcriptContext, meeting.AgentInstructions)
 
-	systemPrompt += "\n\nChat History:"
-	for _, msg := range history {
-		role := "User"
-		if msg.Role == "ai" {
-			role = "AI"
-		}
-		systemPrompt += fmt.Sprintf("\n%s: %s", role, msg.Content)
+	messages := []openai.ChatCompletionMessageParamUnion{
+		openai.SystemMessage(systemPrompt),
 	}
+
+	for _, msg := range history {
+		if msg.Role == "ai" {
+			messages = append(messages, openai.AssistantMessage(msg.Content))
+		} else {
+			messages = append(messages, openai.UserMessage(msg.Content))
+		}
+	}
+
+	messages = append(messages, openai.UserMessage(message))
 
 	stream := make(chan string)
 
 	go func() {
 		defer close(stream)
 
-		geminiStream := client.Models.GenerateContentStream(
-			ctx,
-			"gemini-2.0-flash",
-			genai.Text(systemPrompt+"\n\nUser: "+message),
-			nil,
-		)
+		openaiStream := client.Chat.Completions.NewStreaming(ctx, openai.ChatCompletionNewParams{
+			Model:    "z-ai/glm4.7",
+			Messages: messages,
+		})
 
 		var fullResponse strings.Builder
 
-		for chunk, err := range geminiStream {
-			if err != nil {
-				fmt.Printf("Error in gemini stream: %v\n", err)
-				return
-			}
-			if len(chunk.Candidates) > 0 && len(chunk.Candidates[0].Content.Parts) > 0 {
-				part := chunk.Candidates[0].Content.Parts[0]
-				text := part.Text
+		for openaiStream.Next() {
+			chunk := openaiStream.Current()
+			if len(chunk.Choices) > 0 {
+				text := chunk.Choices[0].Delta.Content
+				if text == "" {
+					continue
+				}
 				fullResponse.WriteString(text)
 				select {
 				case <-ctx.Done():
@@ -152,6 +153,11 @@ func (s *geminiService) Chat(ctx context.Context, meetingID uuid.UUID, userID st
 				case stream <- text:
 				}
 			}
+		}
+
+		if err := openaiStream.Err(); err != nil {
+			fmt.Printf("Error in openai stream: %v\n", err)
+			return
 		}
 
 		_, err = s.queries.CreateChatMessage(ctx, repo.CreateChatMessageParams{
@@ -168,7 +174,7 @@ func (s *geminiService) Chat(ctx context.Context, meetingID uuid.UUID, userID st
 	return stream, nil
 }
 
-func (s *geminiService) GetChatHistory(ctx context.Context, meetingID uuid.UUID, userID string) ([]repo.MeetingChatMessages, error) {
+func (s *chatService) GetChatHistory(ctx context.Context, meetingID uuid.UUID, userID string) ([]repo.MeetingChatMessages, error) {
 	// Authorization check
 	_, err := s.queries.GetMeeting(ctx, repo.GetMeetingParams{
 		ID:     meetingID,
@@ -181,7 +187,7 @@ func (s *geminiService) GetChatHistory(ctx context.Context, meetingID uuid.UUID,
 	return s.queries.GetChatMessages(ctx, meetingID)
 }
 
-func (s *geminiService) fetchTranscript(ctx context.Context, s3URL string) (*livekit.SessionTranscript, error) {
+func (s *chatService) fetchTranscript(ctx context.Context, s3URL string) (*livekit.SessionTranscript, error) {
 	bucket, key, err := parseS3URL(s3URL)
 	if err != nil {
 		return nil, err

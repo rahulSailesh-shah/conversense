@@ -32,7 +32,7 @@ func NewApp(ctx context.Context, cfg *config.AppConfig) (*App, error) {
 	}
 
 	queries := repo.New(dbInstance)
-	inngest, err := inngest.NewInngest(&cfg.AWS, &cfg.Gemini, queries)
+	inngest, err := inngest.NewInngest(&cfg.AWS, &cfg.Gemini, &cfg.OpenAI, queries)
 	if err != nil {
 		return nil, err
 	}
